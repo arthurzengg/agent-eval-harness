@@ -24,6 +24,18 @@ app = typer.Typer(
 console = Console()
 
 
+@app.callback()
+def _main() -> None:
+    """Discover entry-point plugins before any command runs.
+
+    Built-ins are registered at import time above; this adds any graders /
+    adapters / reporters published by installed third-party distributions.
+    """
+    from agent_eval.plugins import load_plugins
+
+    load_plugins()
+
+
 @app.command()
 def validate(suite: Path = typer.Argument(..., help="Path to an eval suite YAML file.")) -> None:
     """Validate an eval suite file."""

@@ -238,6 +238,24 @@ that should sink the task regardless of weighted score.
 2. Register a factory in `src/agent_eval/adapters/__init__.py` with
    `@adapter_registry.register("my_agent")`. Select it via `--agent my_agent`.
 
+### Publishing graders/adapters from an external package
+
+You do not need to fork this repo to add plugins. Any installed distribution can
+register graders, adapters, or reporters via entry points; the CLI discovers them
+at startup. In your package's `pyproject.toml`:
+
+```toml
+[project.entry-points."agent_eval.graders"]
+my_grader = "my_pkg.graders:MyGraderFactory"   # (GraderConfig) -> BaseGrader
+
+[project.entry-points."agent_eval.adapters"]
+my_agent = "my_pkg.adapters:make_my_agent"     # (**kwargs) -> AgentAdapter
+```
+
+The entry-point name becomes the plugin name (used in suites / `--agent`).
+Discovery is additive — built-in names always win — idempotent, and resilient:
+a plugin that fails to import warns and is skipped rather than aborting the run.
+
 ## 8. How to run in CI
 
 A safe example workflow lives at

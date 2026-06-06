@@ -29,12 +29,16 @@ class Registry(Generic[T]):
         """Decorator that registers a factory under ``name``."""
 
         def decorator(factory: Callable[..., T]) -> Callable[..., T]:
-            if name in self._factories:
-                raise ValueError(f"{self._kind} '{name}' is already registered")
-            self._factories[name] = factory
+            self.register_factory(name, factory)
             return factory
 
         return decorator
+
+    def register_factory(self, name: str, factory: Callable[..., T]) -> None:
+        """Register ``factory`` under ``name`` (non-decorator form)."""
+        if name in self._factories:
+            raise ValueError(f"{self._kind} '{name}' is already registered")
+        self._factories[name] = factory
 
     def create(self, name: str, *args: object, **kwargs: object) -> T:
         """Instantiate the factory registered under ``name``."""
