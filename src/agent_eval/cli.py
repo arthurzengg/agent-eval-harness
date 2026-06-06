@@ -4,13 +4,11 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import cast
 
 import typer
 from rich.console import Console
 
 import agent_eval.adapters  # noqa: F401 - register adapters
-from agent_eval.adapters.base import AgentAdapter
 from agent_eval.environments.local_tempdir import LocalTempDirEnvironment
 from agent_eval.graders import validate_suite_graders  # also registers graders
 from agent_eval.registry import adapter_registry
@@ -74,11 +72,8 @@ def run(
     if scoring_mode is not None:
         loaded.defaults.scoring.mode = ScoringMode(scoring_mode)
 
-    adapter = cast(
-        AgentAdapter,
-        adapter_registry.create(
-            agent, agent_url=agent_url, timeout=loaded.defaults.timeout_seconds
-        ),
+    adapter = adapter_registry.create(
+        agent, agent_url=agent_url, timeout=loaded.defaults.timeout_seconds
     )
     runner = Runner(adapter, env_factory=lambda: LocalTempDirEnvironment(keep_workdirs))
     result = asyncio.run(runner.run_suite(loaded))

@@ -1,7 +1,5 @@
 """Graders and their registry registration."""
 
-from typing import cast
-
 from agent_eval.graders.argument_schema import ArgumentSchemaGrader
 from agent_eval.graders.base import BaseGrader
 from agent_eval.graders.exact_match import ExactMatchGrader
@@ -36,7 +34,7 @@ for _cls in _GRADERS.values():
 
 def build_grader(config: GraderConfig) -> BaseGrader:
     """Instantiate the grader registered for ``config.type``."""
-    return cast(BaseGrader, grader_registry.create(config.type, config))
+    return grader_registry.create(config.type, config)
 
 
 def validate_suite_graders(suite: EvalSuite) -> list[str]:
