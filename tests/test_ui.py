@@ -24,18 +24,18 @@ from agent_eval.storage import write_results
 from agent_eval.ui import presenter
 
 
-def _trial_result(*, passed: bool, index: int = 0) -> TrialResult:
+def _trial_result(*, passed: bool, index: int = 0, tool: str = "verify_identity") -> TrialResult:
     transcript = Transcript(
         steps=[
             TranscriptStep(role=Role.user, content="I want a refund."),
             TranscriptStep(
                 role=Role.assistant,
                 content="Checking.",
-                tool_call=ToolCall(name="verify_identity", arguments={"user": "a"}),
+                tool_call=ToolCall(name=tool, arguments={"user": "a"}),
             ),
             TranscriptStep(
                 role=Role.tool,
-                tool_result=ToolResult(name="verify_identity", content={"ok": True}),
+                tool_result=ToolResult(name=tool, content={"ok": True}),
             ),
         ]
     )
@@ -273,3 +273,101 @@ async def test_run_picker_quit_returns_none(tmp_path: Path) -> None:
     async with app.run_test(size=(120, 40)) as pilot:
         await pilot.press("q")
     assert app.return_value is None
+
+
+def _compare_pair(tmp_path: Path) -> tuple[Path, Path]:
+    """Baseline where 'flaky' passes both trials; current where it regressed
+    (one failure, with a different tool sequence)."""
+    baseline = SuiteResult(
+        suite=SuiteMetadata(id="demo", name="Demo Suite"),
+        task_results=[
+            TaskResult(
+                task_id="flaky",
+                trials=[_trial_result(passed=True), _trial_result(passed=True, index=1)],
+                pass_rate=1.0,
+                avg_score=1.0,
+            ),
+            TaskResult(
+                task_id="stable",
+                trials=[_trial_result(passed=True)],
+                pass_rate=1.0,
+                avg_score=1.0,
+            ),
+        ],
+        metrics=MetricsSummary(total_tasks=2, total_trials=3, pass_rate=1.0, k=2),
+    )
+    current = SuiteResult(
+        suite=SuiteMetadata(id="demo", name="Demo Suite"),
+        task_results=[
+            TaskResult(
+                task_id="flaky",
+                trials=[
+                    _trial_result(passed=True),
+                    _trial_result(passed=False, index=1, tool="charge_card"),
+                ],
+                pass_rate=0.5,
+                avg_score=0.7,
+            ),
+            TaskResult(
+                task_id="stable",
+                trials=[_trial_result(passed=True)],
+                pass_rate=1.0,
+                avg_score=1.0,
+            ),
+        ],
+        metrics=MetricsSummary(total_tasks=2, total_trials=3, pass_rate=2 / 3, k=2),
+    )
+    return (
+        write_results(baseline, tmp_path / "baseline"),
+        write_results(current, tmp_path / "current"),
+    )
+
+
+def test_compare_task_label_marks_direction() -> None:
+    from agent_eval.compare import TaskDelta
+
+    down = TaskDelta(task_id="t", status="both", baseline=1.0, current=0.5, regressed=True)
+    up = TaskDelta(task_id="t", status="both", baseline=0.5, current=1.0, regressed=False)
+    new = TaskDelta(task_id="t", status="new", baseline=0.0, current=1.0, regressed=False)
+    assert "▼ -50.0%" in presenter.compare_task_label(down)
+    assert "▲ +50.0%" in presenter.compare_task_label(up)
+    assert "new" in presenter.compare_task_label(new)
+
+
+def test_tool_sequence_diff() -> None:
+    same = presenter.tool_sequence_diff(["a", "b"], ["a", "b"])
+    assert "identical" in same
+    diff = presenter.tool_sequence_diff(["a", "b"], ["a", "c"])
+    assert "[red]- b[/red]" in diff
+    assert "[green]+ c[/green]" in diff
+
+
+def test_compare_summary_flags_regression(tmp_path: Path) -> None:
+    from agent_eval.compare import compare_results
+    from agent_eval.storage import load_results
+
+    base_path, cur_path = _compare_pair(tmp_path)
+    baseline, current = load_results(base_path), load_results(cur_path)
+    text = presenter.compare_summary(compare_results(baseline, current), baseline, current)
+    assert "REGRESSED" in text
+    assert "pass_rate" in text
+    assert "latency" in text
+
+
+async def test_compare_app_selects_first_regression(tmp_path: Path) -> None:
+    pytest.importorskip("textual")
+    from agent_eval.ui.compare_view import CompareApp
+
+    base_path, cur_path = _compare_pair(tmp_path)
+    app = CompareApp(base_path, cur_path)
+    async with app.run_test(size=(140, 40)) as pilot:
+        await pilot.pause()
+        tree = app.query_one("#nav")
+        assert tree.cursor_node is not None and tree.cursor_node.data is not None
+        assert tree.cursor_node.data.task_id == "flaky"  # regression-first
+        assert tree.cursor_node.data.regressed
+        detail = str(app.query_one("#detail").content)
+        assert "charge_card" in detail  # tool-sequence diff rendered
+        await pilot.press("n")  # wraps back to the only regression
+        assert tree.cursor_node.data.task_id == "flaky"
+        await pilot.press("q")

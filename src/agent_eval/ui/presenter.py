@@ -6,9 +6,11 @@ can be unit-tested without instantiating a Textual app.
 
 from __future__ import annotations
 
+import difflib
 import json
 from datetime import datetime
 
+from agent_eval.compare import ComparisonReport, TaskDelta
 from agent_eval.schemas import (
     MetricsSummary,
     SuiteResult,
@@ -207,3 +209,94 @@ def run_label(run: RunInfo) -> str:
         f"[{color}]{_pct(run.pass_rate)}[/{color}] of {run.total_trials} trials  "
         f"[grey62]{run.path}[/grey62]"
     )
+
+
+def _delta_markup(delta: float, *, as_pct: bool = True) -> str:
+    """Render a signed delta with a colored direction arrow."""
+    value = f"{delta * 100:+.1f}%" if as_pct else f"{delta:+.3f}"
+    if delta > 0:
+        return f"[green]▲ {value}[/green]"
+    if delta < 0:
+        return f"[red]▼ {value}[/red]"
+    return f"[grey62]= {value}[/grey62]"
+
+
+def compare_summary(report: ComparisonReport, baseline: SuiteResult, current: SuiteResult) -> str:
+    """Sidebar block: suite-level metric deltas between two runs."""
+    lines = ["[b]Metric deltas[/b]"]
+    for m in report.metrics:
+        lines.append(f"{m.name:<12} {m.baseline:.3f} → {m.current:.3f}  {_delta_markup(m.delta)}")
+    lat_delta = current.metrics.avg_latency_ms - baseline.metrics.avg_latency_ms
+    lat_mark = "[red]" if lat_delta > 0 else "[green]" if lat_delta < 0 else "[grey62]"
+    lines.append(
+        f"{'latency':<12} {baseline.metrics.avg_latency_ms:.0f}ms → "
+        f"{current.metrics.avg_latency_ms:.0f}ms  {lat_mark}{lat_delta:+.0f}ms[/]"
+    )
+    verdict = (
+        "[red b]REGRESSED[/red b]" if report.regressed else "[green b]NO REGRESSIONS[/green b]"
+    )
+    lines.append(f"\n{verdict}  [grey62](tolerance {report.tolerance:g})[/grey62]")
+    return "\n".join(lines)
+
+
+def compare_task_label(delta: TaskDelta) -> str:
+    """One-line task summary for the comparison tree."""
+    if delta.status == "new":
+        return f"{delta.task_id}  [cyan]new[/cyan]  {_pct(delta.current)}"
+    if delta.status == "removed":
+        return f"{delta.task_id}  [grey62]removed[/grey62]  was {_pct(delta.baseline)}"
+    return (
+        f"{delta.task_id}  {_pct(delta.baseline)} → {_pct(delta.current)}  "
+        f"{_delta_markup(delta.delta)}"
+    )
+
+
+def _tool_sequence(trial: TrialResult) -> list[str]:
+    return [call.name for call in trial.trial.transcript.tool_calls()]
+
+
+def tool_sequence_diff(baseline: list[str], current: list[str]) -> str:
+    """Unified-style diff of two tool-call name sequences."""
+    if baseline == current:
+        return "[grey62]identical tool sequences[/grey62]"
+    lines = []
+    for line in difflib.ndiff(baseline, current):
+        if line.startswith("- "):
+            lines.append(f"[red]- {line[2:]}[/red]")
+        elif line.startswith("+ "):
+            lines.append(f"[green]+ {line[2:]}[/green]")
+        elif line.startswith("  "):
+            lines.append(f"[grey62]  {line[2:]}[/grey62]")
+        # "? " hint lines add noise for name lists; skip them.
+    return "\n".join(lines)
+
+
+def format_task_compare(
+    delta: TaskDelta, baseline: TaskResult | None, current: TaskResult | None
+) -> str:
+    """Right-pane detail for one task in the comparison view."""
+    parts = [f"[b]{delta.task_id}[/b]"]
+    if delta.status == "new":
+        parts.append("[cyan]Only in the current run.[/cyan]")
+    elif delta.status == "removed":
+        parts.append("[grey62]Only in the baseline run.[/grey62]")
+    parts.append(
+        f"pass rate {_pct(delta.baseline)} → {_pct(delta.current)}  {_delta_markup(delta.delta)}"
+    )
+    base_trials = baseline.trials if baseline else []
+    cur_trials = current.trials if current else []
+    if base_trials or cur_trials:
+        parts.append(
+            f"\n[b]Trials[/b]  baseline {''.join(_dot(t) for t in base_trials) or '—'}"
+            f"  ·  current {''.join(_dot(t) for t in cur_trials) or '—'}"
+        )
+    for index in range(max(len(base_trials), len(cur_trials))):
+        base_seq = _tool_sequence(base_trials[index]) if index < len(base_trials) else []
+        cur_seq = _tool_sequence(cur_trials[index]) if index < len(cur_trials) else []
+        parts.append(f"\n[b]Trial {index} tool calls[/b]  (baseline vs current)")
+        parts.append(tool_sequence_diff(base_seq, cur_seq))
+    return "\n".join(parts)
+
+
+def _dot(trial: TrialResult) -> str:
+    return "[green]●[/green]" if trial.passed else "[red]●[/red]"

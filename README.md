@@ -94,6 +94,10 @@ agent-eval ui --results reports/refund_support/results.json
 agent-eval ui
 agent-eval ui --dir reports/
 
+# Compare two runs interactively: per-task pass-rate deltas, suite metric
+# deltas, and per-trial tool-call sequence diffs ('n' jumps to regressions).
+agent-eval ui --compare baselines/results.json reports/refund_support/results.json
+
 # Or watch a run live: trials tick pending -> running -> pass/fail as they
 # execute (composes with --concurrency), then the results browser opens.
 agent-eval run \
