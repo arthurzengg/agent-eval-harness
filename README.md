@@ -335,6 +335,22 @@ The entry-point name becomes the plugin name (used in suites / `--agent`).
 Discovery is additive — built-in names always win — idempotent, and resilient:
 a plugin that fails to import warns and is skipped rather than aborting the run.
 
+### Calibrating and de-biasing LLM judges
+
+LLM judges are biased, so [`agent_eval/judges.py`](src/agent_eval/judges.py)
+provides the standard mitigations (deterministic, testable against mock
+providers):
+
+- **Pairwise judging** (`pairwise_judge`) compares two candidates directly.
+- **A/B order swap** runs each comparison in both orders and *detects position
+  bias*: when the orders disagree the verdict is downgraded to a tie rather than
+  trusted.
+- **Multi-judge consensus** (`consensus`, `consensus_pairwise`) takes a majority
+  vote across judges with an agreement score.
+- **Gold-set agreement** (`agreement_rate`, `cohens_kappa`,
+  `calibrate_against_gold`) tracks how well a judge matches human labels
+  (chance-corrected).
+
 ## 8. How to run in CI
 
 A safe example workflow lives at
