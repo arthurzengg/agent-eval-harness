@@ -121,6 +121,7 @@ class Runner:
         return TaskResult(
             task_id=task.id,
             trials=trial_results,
+            k=len(trial_results),
             pass_rate=sum(1 for t in trial_results if t.passed) / num,
             avg_score=sum(t.score for t in trial_results) / num,
         )

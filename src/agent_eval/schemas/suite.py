@@ -70,6 +70,9 @@ class Defaults(BaseModel):
     timeout_seconds: float = Field(60.0, gt=0.0)
     scoring: Scoring = Field(default_factory=Scoring)
     pricing: Pricing = Field(default_factory=Pricing)
+    # When True, ``validate``/``run`` reject suites whose tasks resolve to
+    # different trial counts, keeping pass@k / pass^k comparable across tasks.
+    enforce_consistent_trials: bool = False
 
 
 class SuiteMetadata(BaseModel):
@@ -131,6 +134,28 @@ class EvalSuite(BaseModel):
     def task_trials(self, task: Task) -> int:
         """Resolve the trial count for a task, falling back to defaults."""
         return task.trials if task.trials is not None else self.defaults.trials
+
+    def resolved_trial_counts(self) -> dict[str, int]:
+        """Map each task id to its resolved trial count (its own k)."""
+        return {task.id: self.task_trials(task) for task in self.tasks}
+
+    def trial_count_errors(self) -> list[str]:
+        """Report inconsistent trial counts when the suite enforces consistency.
+
+        Returns an empty list unless ``defaults.enforce_consistent_trials`` is
+        set and tasks resolve to more than one distinct trial count.
+        """
+        if not self.defaults.enforce_consistent_trials:
+            return []
+        counts = self.resolved_trial_counts()
+        distinct = sorted(set(counts.values()))
+        if len(distinct) <= 1:
+            return []
+        detail = ", ".join(f"{tid}={k}" for tid, k in counts.items())
+        return [
+            "enforce_consistent_trials is set but tasks resolve to different "
+            f"trial counts {distinct}: {detail}."
+        ]
 
     def task_scoring(self, task: Task) -> Scoring:
         """Resolve the scoring policy for a task, falling back to defaults."""
