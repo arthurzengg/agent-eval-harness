@@ -81,6 +81,15 @@ agent-eval report \
 # Browse stored results in an interactive terminal UI
 # (requires the optional extra: pip install 'agent-eval-harness[ui]')
 agent-eval ui --results reports/refund_support/results.json
+
+# Or watch a run live: trials tick pending -> running -> pass/fail as they
+# execute (composes with --concurrency), then the results browser opens.
+agent-eval run \
+  --suite examples/suites/refund_support.yaml \
+  --agent echo \
+  --concurrency 8 \
+  --output reports/refund_support \
+  --ui
 ```
 
 The `ui` command opens a full-screen terminal browser: a task tree with

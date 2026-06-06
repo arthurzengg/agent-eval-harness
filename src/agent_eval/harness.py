@@ -17,7 +17,7 @@ from agent_eval.environments.local_tempdir import LocalTempDirEnvironment
 from agent_eval.registry import adapter_registry
 from agent_eval.reporters.html_reporter import HTMLReporter
 from agent_eval.reporters.json_reporter import JSONReporter
-from agent_eval.runner import Runner
+from agent_eval.runner import ProgressCallback, Runner
 from agent_eval.schemas import EvalSuite, ScoringMode, SuiteResult
 
 
@@ -59,25 +59,34 @@ def build_adapter(suite: EvalSuite, config: RunConfig) -> AgentAdapter:
     )
 
 
-def build_runner(adapter: AgentAdapter, config: RunConfig) -> Runner:
+def build_runner(
+    adapter: AgentAdapter, config: RunConfig, on_event: ProgressCallback | None = None
+) -> Runner:
     """Construct a Runner wired with the env factory and concurrency cap."""
     return Runner(
         adapter,
         env_factory=lambda: LocalTempDirEnvironment(config.keep_workdirs),
         concurrency=config.concurrency,
+        on_event=on_event,
     )
 
 
-async def run_suite(suite: EvalSuite, config: RunConfig) -> SuiteResult:
+async def run_suite(
+    suite: EvalSuite, config: RunConfig, on_event: ProgressCallback | None = None
+) -> SuiteResult:
     """Apply overrides, build the adapter/runner, and run the suite."""
     apply_overrides(suite, config)
     adapter = build_adapter(suite, config)
-    return await build_runner(adapter, config).run_suite(suite)
+    return await build_runner(adapter, config, on_event).run_suite(suite)
+
+
+def write_reports(result: SuiteResult, output: Path) -> RunArtifacts:
+    """Write the JSON + HTML reports for ``result`` under ``output``."""
+    json_path = JSONReporter().render(result, output)
+    html_path = HTMLReporter().render(result, output)
+    return RunArtifacts(result=result, json_path=json_path, html_path=html_path)
 
 
 def run_suite_to_disk(suite: EvalSuite, output: Path, config: RunConfig) -> RunArtifacts:
     """Run ``suite`` and write the JSON + HTML reports under ``output``."""
-    result = asyncio.run(run_suite(suite, config))
-    json_path = JSONReporter().render(result, output)
-    html_path = HTMLReporter().render(result, output)
-    return RunArtifacts(result=result, json_path=json_path, html_path=html_path)
+    return write_reports(asyncio.run(run_suite(suite, config)), output)

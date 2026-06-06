@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from agent_eval.adapters.base import AgentAdapter
 from agent_eval.environments.base import EvalEnvironment
@@ -33,6 +34,27 @@ from agent_eval.scoring import score_trial
 EnvFactory = Callable[[], EvalEnvironment]
 
 
+@dataclass(frozen=True)
+class TrialStarted:
+    """Emitted when a trial acquires a concurrency slot and starts running."""
+
+    task_id: str
+    index: int
+
+
+@dataclass(frozen=True)
+class TrialFinished:
+    """Emitted after a trial has been run, graded, and scored."""
+
+    task_id: str
+    index: int
+    result: TrialResult
+
+
+ProgressEvent = TrialStarted | TrialFinished
+ProgressCallback = Callable[[ProgressEvent], None]
+
+
 class Runner:
     """Orchestrates running a suite against an agent adapter."""
 
@@ -41,10 +63,21 @@ class Runner:
         adapter: AgentAdapter,
         env_factory: EnvFactory | None = None,
         concurrency: int = 1,
+        on_event: ProgressCallback | None = None,
     ) -> None:
         self._adapter = adapter
         self._env_factory = env_factory or (lambda: LocalTempDirEnvironment())
         self._concurrency = max(1, concurrency)
+        self._on_event = on_event
+
+    def _emit(self, event: ProgressEvent) -> None:
+        """Notify the observer; observer errors must never abort the suite."""
+        if self._on_event is None:
+            return
+        try:
+            self._on_event(event)
+        except Exception:  # noqa: BLE001 - observers are best-effort
+            pass
 
     async def run_suite(self, suite: EvalSuite) -> SuiteResult:
         # One semaphore shared across every trial in the suite bounds the global
@@ -71,12 +104,15 @@ class Runner:
             # Only the agent run is gated by the semaphore; grading is cheap,
             # local, and need not occupy a concurrency slot.
             async with sem:
+                self._emit(TrialStarted(task_id=task.id, index=index))
                 trial = await self._run_trial(task, index, timeout)
             grader_results = await self._grade(task, trial)
             score, passed = score_trial(grader_results, scoring)
-            return TrialResult(
+            result = TrialResult(
                 trial=trial, grader_results=grader_results, score=score, passed=passed
             )
+            self._emit(TrialFinished(task_id=task.id, index=index, result=result))
+            return result
 
         # gather preserves order, so trials stay in definition order.
         trial_results = list(await asyncio.gather(*(run_one(i) for i in range(trials))))

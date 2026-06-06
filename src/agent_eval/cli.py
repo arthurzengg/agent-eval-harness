@@ -8,10 +8,10 @@ import typer
 from rich.console import Console
 
 from agent_eval.graders import validate_suite_graders  # also registers graders
-from agent_eval.harness import RunConfig, run_suite_to_disk
+from agent_eval.harness import RunConfig, run_suite_to_disk, write_reports
 from agent_eval.reporters.console_reporter import ConsoleReporter
 from agent_eval.reporters.html_reporter import HTMLReporter
-from agent_eval.schemas import ScoringMode
+from agent_eval.schemas import EvalSuite, ScoringMode
 from agent_eval.storage import load_results
 from agent_eval.suite_loader import SuiteLoadError, load_suite
 
@@ -57,6 +57,9 @@ def run(
     concurrency: int = typer.Option(
         1, "--concurrency", min=1, help="Max trials to run at once (default 1 = serial)."
     ),
+    ui: bool = typer.Option(
+        False, "--ui", help="Watch the run live in the terminal UI, then browse results."
+    ),
 ) -> None:
     """Run an eval suite against an agent adapter."""
     try:
@@ -73,12 +76,50 @@ def run(
         concurrency=concurrency,
         keep_workdirs=keep_workdirs,
     )
+
+    if ui:
+        _run_with_ui(loaded, output, config)
+        return
+
     artifacts = run_suite_to_disk(loaded, output, config)
 
     ConsoleReporter(console).render(artifacts.result)
     console.print(
         f"\nWrote [cyan]{artifacts.json_path}[/cyan] and [cyan]{artifacts.html_path}[/cyan]."
     )
+
+
+def _run_with_ui(loaded: EvalSuite, output: Path, config: RunConfig) -> None:
+    """Run the suite under the live TUI, persist reports, open the browser."""
+    from agent_eval.ui import run_live, run_ui
+
+    try:
+        result = run_live(loaded, config)
+    except ModuleNotFoundError as exc:
+        _require_ui_extra(exc)
+        raise  # unreachable; _require_ui_extra always raises
+
+    if result is None:
+        console.print("[yellow]Run aborted; no results written.[/yellow]")
+        raise typer.Exit(code=1)
+
+    artifacts = write_reports(result, output)
+    console.print(
+        f"Wrote [cyan]{artifacts.json_path}[/cyan] and [cyan]{artifacts.html_path}[/cyan]."
+    )
+    if artifacts.json_path is not None:
+        run_ui(str(artifacts.json_path))
+
+
+def _require_ui_extra(exc: ModuleNotFoundError) -> None:
+    """Translate a missing-textual import into a friendly install hint."""
+    if exc.name is None or not exc.name.startswith("textual"):
+        raise exc
+    console.print(
+        "[red]The interactive UI requires the 'ui' extra.[/red] "
+        "Install it with: [cyan]pip install 'agent-eval-harness\\[ui]'[/cyan]"
+    )
+    raise typer.Exit(code=1) from exc
 
 
 @app.command()
@@ -108,13 +149,7 @@ def ui(
     try:
         run_ui(str(results))
     except ModuleNotFoundError as exc:
-        if exc.name is None or not exc.name.startswith("textual"):
-            raise
-        console.print(
-            "[red]The interactive UI requires the 'ui' extra.[/red] "
-            "Install it with: [cyan]pip install 'agent-eval-harness\\[ui]'[/cyan]"
-        )
-        raise typer.Exit(code=1) from exc
+        _require_ui_extra(exc)
 
 
 if __name__ == "__main__":
