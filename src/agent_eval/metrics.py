@@ -9,7 +9,7 @@ are misleading):
 
 from __future__ import annotations
 
-from agent_eval.schemas import MetricsSummary, TaskResult, TrialResult
+from agent_eval.schemas import MetricsSummary, Pricing, TaskResult, TrialResult
 
 
 def _mean(values: list[float]) -> float:
@@ -26,13 +26,28 @@ def pass_caret_k(task: TaskResult) -> bool:
     return bool(task.trials) and all(t.passed for t in task.trials)
 
 
-def compute_metrics(task_results: list[TaskResult], k: int) -> MetricsSummary:
-    """Aggregate metrics across all tasks and trials."""
+def compute_metrics(
+    task_results: list[TaskResult], k: int, pricing: Pricing | None = None
+) -> MetricsSummary:
+    """Aggregate metrics across all tasks and trials.
+
+    ``pricing`` (USD per 1M tokens) is used to estimate cost from each trial's
+    token usage; when omitted, cost is reported as 0.
+    """
+    pricing = pricing or Pricing()
     all_trials = [t for tr in task_results for t in tr.trials]
     total_trials = len(all_trials)
 
     per_task: dict[str, float] = {tr.task_id: tr.pass_rate for tr in task_results}
     per_grader = _per_grader_pass_rate(all_trials)
+
+    input_tokens = [float(t.trial.transcript.input_tokens()) for t in all_trials]
+    output_tokens = [float(t.trial.transcript.output_tokens()) for t in all_trials]
+    total_tokens = [float(t.trial.transcript.total_tokens()) for t in all_trials]
+    costs = [
+        pricing.cost_usd(t.trial.transcript.input_tokens(), t.trial.transcript.output_tokens())
+        for t in all_trials
+    ]
 
     num_tasks = len(task_results) or 1
     return MetricsSummary(
@@ -47,6 +62,12 @@ def compute_metrics(task_results: list[TaskResult], k: int) -> MetricsSummary:
         avg_tool_calls=_mean([len(t.trial.transcript.tool_calls()) for t in all_trials]),
         avg_turns=_mean([float(t.trial.transcript.turn_count()) for t in all_trials]),
         error_rate=_mean([1.0 if t.trial.error else 0.0 for t in all_trials]),
+        avg_input_tokens=_mean(input_tokens),
+        avg_output_tokens=_mean(output_tokens),
+        avg_total_tokens=_mean(total_tokens),
+        total_tokens=int(sum(total_tokens)),
+        avg_cost_usd=_mean(costs),
+        total_cost_usd=sum(costs),
         per_task=per_task,
         per_grader=per_grader,
     )

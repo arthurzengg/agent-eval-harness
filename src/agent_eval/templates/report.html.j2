@@ -54,6 +54,14 @@
     <div class="card"><div class="k">Avg score</div><div class="v">{{ '%.3f'|format(m.avg_score) }}</div></div>
     <div class="card"><div class="k">Avg latency</div><div class="v">{{ '%.0f'|format(m.avg_latency_ms) }} ms</div></div>
     <div class="card"><div class="k">Error rate</div><div class="v">{{ pct(m.error_rate) }}</div></div>
+    {% if m.total_tokens %}
+    <div class="card"><div class="k">Avg tokens (in/out)</div><div class="v">{{ '%.0f'|format(m.avg_input_tokens) }} / {{ '%.0f'|format(m.avg_output_tokens) }}</div></div>
+    <div class="card"><div class="k">Total tokens</div><div class="v">{{ '{:,}'.format(m.total_tokens) }}</div></div>
+    {% endif %}
+    {% if m.total_cost_usd %}
+    <div class="card"><div class="k">Avg cost / trial</div><div class="v">${{ '%.4f'|format(m.avg_cost_usd) }}</div></div>
+    <div class="card"><div class="k">Total cost</div><div class="v">${{ '%.4f'|format(m.total_cost_usd) }}</div></div>
+    {% endif %}
   </div>
 
   <h2>Per-grader pass rate</h2>

@@ -74,6 +74,12 @@ class MetricsSummary(BaseModel):
     avg_tool_calls: float = 0.0
     avg_turns: float = 0.0
     error_rate: float = 0.0
+    avg_input_tokens: float = 0.0
+    avg_output_tokens: float = 0.0
+    avg_total_tokens: float = 0.0
+    total_tokens: int = 0
+    avg_cost_usd: float = 0.0
+    total_cost_usd: float = 0.0
     per_task: dict[str, float] = Field(default_factory=dict)
     per_grader: dict[str, float] = Field(default_factory=dict)
 

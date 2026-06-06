@@ -33,6 +33,15 @@ class ConsoleReporter:
         table.add_row("Avg score", f"{m.avg_score:.3f}")
         table.add_row("Avg latency (ms)", f"{m.avg_latency_ms:.1f}")
         table.add_row("Error rate", _pct(m.error_rate))
+        if m.total_tokens:
+            table.add_row(
+                "Avg tokens (in/out)",
+                f"{m.avg_input_tokens:.0f} / {m.avg_output_tokens:.0f}",
+            )
+            table.add_row("Total tokens", f"{m.total_tokens:,}")
+        if m.total_cost_usd:
+            table.add_row("Avg cost / trial", f"${m.avg_cost_usd:.4f}")
+            table.add_row("Total cost", f"${m.total_cost_usd:.4f}")
         c.print(table)
 
         self._failed_tasks(result)

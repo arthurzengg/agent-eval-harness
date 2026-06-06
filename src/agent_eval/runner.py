@@ -54,7 +54,7 @@ class Runner:
             *(self._run_task(suite, task, sem) for task in suite.tasks)
         )
         max_k = max((suite.task_trials(t) for t in suite.tasks), default=1)
-        metrics = compute_metrics(list(task_results), k=max_k)
+        metrics = compute_metrics(list(task_results), k=max_k, pricing=suite.defaults.pricing)
         return SuiteResult(
             suite=suite.suite,
             scoring_mode=suite.defaults.scoring.mode,

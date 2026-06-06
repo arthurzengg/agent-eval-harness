@@ -122,6 +122,9 @@ defaults:
   trials: 3
   timeout_seconds: 60
   scoring: { mode: weighted, pass_threshold: 0.80 }
+  # Optional: USD per 1M tokens, used to estimate run cost from the
+  # agent's reported token usage. Defaults to 0 (cost reported as $0).
+  pricing: { input_per_1m: 3.0, output_per_1m: 15.0 }
 tasks:
   - id: refund_allowed_under_30_days
     input: { user_message: "..." }
