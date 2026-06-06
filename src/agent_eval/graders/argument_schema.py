@@ -21,6 +21,17 @@ class ArgumentSchemaGrader(BaseGrader):
 
     type = "argument_schema"
 
+    def validate_config(self) -> None:
+        if not self.options.get("tool"):
+            raise ValueError("requires a 'tool' name.")
+        schema = self.options.get("schema")
+        if not isinstance(schema, dict):
+            raise ValueError("requires a 'schema' mapping (JSON Schema).")
+        try:
+            Draft202012Validator.check_schema(schema)
+        except Exception as exc:  # jsonschema.SchemaError and friends
+            raise ValueError(f"invalid JSON Schema: {exc}") from exc
+
     async def grade(self, task: Task, trial: Trial) -> GraderResult:
         tool = self.options.get("tool")
         schema = self.options.get("schema")

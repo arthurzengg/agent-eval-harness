@@ -112,11 +112,28 @@ class Runner:
             await env.teardown()
 
     async def _grade(self, task: Task, trial: Trial) -> list[GraderResult]:
-        async def run_one(config: GraderConfig) -> GraderResult:
+        return list(await asyncio.gather(*(self._grade_one(g, task, trial) for g in task.graders)))
+
+    async def _grade_one(self, config: GraderConfig, task: Task, trial: Trial) -> GraderResult:
+        """Run one grader, turning any failure into a failed result.
+
+        A grader that raises (including an unknown type) must not abort the
+        suite: it becomes a hard-failing ``GraderResult`` carrying the error, so
+        the trial fails loudly while the rest of the run continues.
+        """
+        try:
             grader = cast(BaseGrader, grader_registry.create(config.type, config))
             return await grader.grade(task, trial)
-
-        return list(await asyncio.gather(*(run_one(g) for g in task.graders)))
+        except Exception as exc:  # noqa: BLE001 - record, never crash the suite
+            return GraderResult(
+                grader_type=config.type,
+                score=0.0,
+                passed=False,
+                weight=config.weight,
+                hard_fail=True,
+                enabled=config.enabled,
+                reason=f"Grader raised an error: {exc}",
+            )
 
 
 def _merge_state(outcome: Outcome, env: EvalEnvironment) -> Outcome:

@@ -23,6 +23,13 @@ class StateCheckGrader(BaseGrader):
 
     type = "state_check"
 
+    def validate_config(self) -> None:
+        expect = self.options.get("expect")
+        if not expect:
+            raise ValueError("requires a non-empty 'expect' mapping of dot-path -> value.")
+        if not isinstance(expect, dict):
+            raise ValueError("'expect' must be a mapping of dot-path -> value.")
+
     async def grade(self, task: Task, trial: Trial) -> GraderResult:
         expect: dict[str, Any] = self.options.get("expect", {}) or {}
         if not expect:

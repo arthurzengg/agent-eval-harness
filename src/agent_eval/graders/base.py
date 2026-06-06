@@ -27,6 +27,15 @@ class BaseGrader(ABC):
     async def grade(self, task: Task, trial: Trial) -> GraderResult:
         """Score ``trial`` for ``task``."""
 
+    def validate_config(self) -> None:  # noqa: B027 - optional hook, default no-op
+        """Validate this grader's configuration up front.
+
+        Raise ``ValueError`` with a clear message when a required option is
+        missing or malformed. The default is a no-op (graders with only optional
+        options are always valid). Called by ``agent-eval validate`` so config
+        errors surface before any trial runs, not midway through a suite.
+        """
+
     def result(
         self,
         *,
