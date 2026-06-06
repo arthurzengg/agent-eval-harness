@@ -78,6 +78,13 @@ agent-eval report \
   --results reports/refund_support/results.json \
   --output reports/refund_support/index.html
 
+# Gate a run against a baseline: exits non-zero if pass rate / score
+# regresses beyond --tolerance. Use in CI to block quality drops.
+agent-eval compare \
+  --baseline baselines/refund_support.json \
+  --current reports/refund_support/results.json \
+  --tolerance 0.0
+
 # Browse stored results in an interactive terminal UI
 # (requires the optional extra: pip install 'agent-eval-harness[ui]')
 agent-eval ui --results reports/refund_support/results.json
