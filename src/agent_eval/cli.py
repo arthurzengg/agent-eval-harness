@@ -2,20 +2,15 @@
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 import typer
 from rich.console import Console
 
-import agent_eval.adapters  # noqa: F401 - register adapters
-from agent_eval.environments.local_tempdir import LocalTempDirEnvironment
 from agent_eval.graders import validate_suite_graders  # also registers graders
-from agent_eval.registry import adapter_registry
+from agent_eval.harness import RunConfig, run_suite_to_disk
 from agent_eval.reporters.console_reporter import ConsoleReporter
 from agent_eval.reporters.html_reporter import HTMLReporter
-from agent_eval.reporters.json_reporter import JSONReporter
-from agent_eval.runner import Runner
 from agent_eval.schemas import ScoringMode
 from agent_eval.storage import load_results
 from agent_eval.suite_loader import SuiteLoadError, load_suite
@@ -70,25 +65,20 @@ def run(
         console.print(f"[red]Invalid suite:[/red] {exc}")
         raise typer.Exit(code=1) from exc
 
-    if trials is not None:
-        loaded.defaults.trials = trials
-    if scoring_mode is not None:
-        loaded.defaults.scoring.mode = ScoringMode(scoring_mode)
-
-    adapter = adapter_registry.create(
-        agent, agent_url=agent_url, timeout=loaded.defaults.timeout_seconds
-    )
-    runner = Runner(
-        adapter,
-        env_factory=lambda: LocalTempDirEnvironment(keep_workdirs),
+    config = RunConfig(
+        agent=agent,
+        agent_url=agent_url,
+        trials=trials,
+        scoring_mode=ScoringMode(scoring_mode) if scoring_mode is not None else None,
         concurrency=concurrency,
+        keep_workdirs=keep_workdirs,
     )
-    result = asyncio.run(runner.run_suite(loaded))
+    artifacts = run_suite_to_disk(loaded, output, config)
 
-    json_path = JSONReporter().render(result, output)
-    html_path = HTMLReporter().render(result, output)
-    ConsoleReporter(console).render(result)
-    console.print(f"\nWrote [cyan]{json_path}[/cyan] and [cyan]{html_path}[/cyan].")
+    ConsoleReporter(console).render(artifacts.result)
+    console.print(
+        f"\nWrote [cyan]{artifacts.json_path}[/cyan] and [cyan]{artifacts.html_path}[/cyan]."
+    )
 
 
 @app.command()
