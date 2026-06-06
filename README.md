@@ -224,6 +224,14 @@ list (`ordered: true`) or pairwise via `after:` — so
     - { name: refund_processed, tool: process_refund }
 ```
 
+**Calibrated scoring.** Hand-written weights are guesses; with human labels or
+production outcomes you can fit them. [`agent_eval/calibration.py`](src/agent_eval/calibration.py)
+learns grader weights via logistic regression (`learn_weights` /
+`learn_from_labeled_trials`), reports a calibrated **pass probability**
+(`LogisticModel.pass_probability`) instead of an opaque weighted average, and
+supports **multi-objective** scoring across quality, safety, latency, and cost
+(`Objectives`, `weighted_objective`, `dominates`, `pareto_front`).
+
 **Scoring:** in `weighted` mode the task score is the weighted average of enabled
 graders and passes at `pass_threshold` (and only if no hard-fail grader, e.g. a
 forbidden tool, failed). In `binary` mode every enabled grader must pass. Partial
