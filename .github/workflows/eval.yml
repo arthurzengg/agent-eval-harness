@@ -1,0 +1,75 @@
+name: eval
+
+# Safe example workflow: installs the package and runs the example suite with the
+# deterministic `echo` agent. It needs no secrets and makes no network calls.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Lint
+        run: |
+          ruff check src tests
+          ruff format --check src tests
+
+      - name: Type-check
+        run: mypy
+
+      - name: Test
+        run: pytest -q
+
+  eval:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: uv pip install --system -e ".[dev]"
+
+      - name: Run example eval (echo agent, no secrets)
+        run: |
+          agent-eval run \
+            --suite examples/suites/refund_support.yaml \
+            --agent echo \
+            --trials 3 \
+            --output reports/refund_support
+
+      # To evaluate a real agent over HTTP instead, start a server that
+      # implements POST /run and use the `http` adapter. The bundled mock agent
+      # demonstrates the contract:
+      #
+      #   python examples/agents/mock_refund_agent.py &
+      #   agent-eval run \
+      #     --suite examples/suites/refund_support.yaml \
+      #     --agent http --agent-url http://localhost:8080/run \
+      #     --trials 3 --output reports/refund_support
+      #
+      # Keep any credentials in GitHub Secrets; this example needs none.
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: reports/refund_support

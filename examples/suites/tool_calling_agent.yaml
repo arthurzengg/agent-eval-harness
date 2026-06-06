@@ -1,0 +1,62 @@
+suite:
+  id: tool_calling_agent
+  name: Tool-Calling Agent Eval
+  description: >
+    Demonstrates the non-tool-call graders (regex, argument_schema, transcript)
+    alongside tool_calls and state_check on a flight-booking style task.
+  version: 0.1.0
+
+defaults:
+  trials: 2
+  timeout_seconds: 30
+  scoring:
+    mode: weighted
+    pass_threshold: 0.75
+
+tasks:
+  - id: book_flight_sfo_jfk
+    type: conversational_agent
+    input:
+      user_message: "Book me a flight from SFO to JFK next Tuesday."
+    reference:
+      summary: "Booked a flight from SFO to JFK and confirmed the itinerary."
+    expected_outcome:
+      booking:
+        status: confirmed
+        origin: SFO
+        destination: JFK
+    graders:
+      - type: tool_calls
+        weight: 0.3
+        required:
+          - tool: search_flights
+            params:
+              origin: SFO
+              destination: JFK
+          - tool: book_flight
+        forbidden:
+          - tool: cancel_booking
+      - type: argument_schema
+        weight: 0.2
+        tool: search_flights
+        schema:
+          type: object
+          required: [origin, destination]
+          properties:
+            origin: { type: string, minLength: 3 }
+            destination: { type: string, minLength: 3 }
+      - type: regex
+        weight: 0.2
+        patterns:
+          - "SFO.*JFK"
+        mode: all
+      - type: state_check
+        weight: 0.2
+        expect:
+          booking.status: confirmed
+      - type: transcript
+        weight: 0.1
+        max_turns: 12
+        max_tool_calls: 6
+        required_phrases:
+          - "itinerary"

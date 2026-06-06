@@ -1,0 +1,78 @@
+suite:
+  id: refund_support
+  name: Refund Support Agent Eval
+  description: Evaluates a support agent that handles refund requests.
+  version: 0.1.0
+
+defaults:
+  trials: 3
+  timeout_seconds: 60
+  scoring:
+    mode: weighted
+    pass_threshold: 0.80
+
+tasks:
+  - id: refund_allowed_under_30_days
+    type: conversational_agent
+    input:
+      user_message: "I want a refund for order A100. I bought it 10 days ago."
+    reference:
+      summary: "Agent should verify identity, fetch policy, process refund, and explain the resolution."
+    expected_outcome:
+      ticket:
+        status: resolved
+      refund:
+        status: processed
+        order_id: A100
+    graders:
+      - type: tool_calls
+        weight: 0.25
+        required:
+          - tool: verify_identity
+          - tool: fetch_refund_policy
+          - tool: process_refund
+        forbidden:
+          - tool: escalate_to_manager
+      - type: state_check
+        weight: 0.35
+        expect:
+          ticket.status: resolved
+          refund.status: processed
+          refund.order_id: A100
+      - type: transcript
+        weight: 0.15
+        max_turns: 10
+        max_tool_calls: 8
+      - type: llm_rubric
+        weight: 0.25
+        enabled: false
+        rubric: prompts/support_quality.md
+        assertions:
+          - "The agent clearly explains the refund decision."
+          - "The agent grounds the decision in the refund policy."
+          - "The agent uses a professional tone."
+
+  - id: refund_denied_over_30_days
+    type: conversational_agent
+    input:
+      user_message: "I want a refund for order B200. I bought it 45 days ago."
+    reference:
+      summary: "Agent should verify identity, fetch policy, avoid processing refund, and explain or escalate."
+    expected_outcome:
+      refund:
+        status: not_processed
+    graders:
+      - type: tool_calls
+        weight: 0.40
+        required:
+          - tool: verify_identity
+          - tool: fetch_refund_policy
+        forbidden:
+          - tool: process_refund
+      - type: state_check
+        weight: 0.40
+        expect:
+          refund.status: not_processed
+      - type: transcript
+        weight: 0.20
+        max_turns: 10
