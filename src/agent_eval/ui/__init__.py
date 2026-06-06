@@ -3,10 +3,13 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from agent_eval.harness import RunConfig
     from agent_eval.schemas import EvalSuite, SuiteResult
+    from agent_eval.storage import RunInfo
 
-__all__ = ["run_live", "run_ui"]
+__all__ = ["pick_run", "run_live", "run_ui"]
 
 
 def run_ui(results_path: str) -> None:
@@ -23,3 +26,11 @@ def run_live(suite: "EvalSuite", config: "RunConfig") -> "SuiteResult | None":
     from agent_eval.ui.live import LiveRunApp
 
     return LiveRunApp(suite, config).run()
+
+
+def pick_run(runs: "list[RunInfo]") -> "Path | None":
+    """Show the run picker; returns the chosen results path, or ``None`` if
+    the user quit. Imports Textual lazily like :func:`run_ui`."""
+    from agent_eval.ui.picker import RunPickerApp
+
+    return RunPickerApp(runs).run()
