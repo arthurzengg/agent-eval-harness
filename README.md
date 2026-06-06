@@ -143,6 +143,24 @@ recorded in trial metadata, and captures an agent-reported version
 (`agent_version` field or `X-Agent-Version` header). Tune retries with
 `--retry-attempts` (default 3) and `--retry-backoff` (base seconds, default 0.2).
 
+### JSONL / dataset suites
+
+Suites can also be authored as JSONL — one task per line — which makes it easy
+to generate evals from logs, datasets, or production traces. An optional first
+"header" line carries `suite` / `defaults` metadata; without it, suite metadata
+is synthesized from the filename. `validate`, `run`, and `report` accept
+`.jsonl` / `.ndjson` files transparently.
+
+```jsonl
+{"suite": {"id": "refund_support", "name": "Refund support"}, "defaults": {"trials": 2}}
+{"id": "refund_allowed", "input": {"user_message": "..."}, "graders": [{"type": "state_check", "expect": {"refund.status": "processed"}}]}
+{"id": "refund_denied",  "input": {"user_message": "..."}, "graders": [{"type": "state_check", "expect": {"refund.status": "denied"}}]}
+```
+
+```bash
+agent-eval run --suite examples/suites/refund_support.jsonl --agent echo --output reports/refund_jsonl
+```
+
 ## 5. Example suite
 
 See [`examples/suites/refund_support.yaml`](examples/suites/refund_support.yaml).
@@ -233,9 +251,8 @@ a `pass^k` regression.
 
 - **LLM judge is interface-only.** Only the `mock` provider is wired up; OpenAI /
   Anthropic providers are stubs behind env vars and require implementation.
-- **YAML suites only.** JSONL ingestion is not yet implemented.
-- **Single-process, sequential tasks.** Trials within a task are sequential; no
-  distributed or parallel run backend yet.
+- **Single-process run backend.** Concurrency is bounded in-process via
+  `--concurrency`; there is no distributed run backend yet.
 - **Filesystem storage only.** No SQLite/cloud storage backend.
 - **No web UI.** Reports are static HTML by design.
 
