@@ -10,6 +10,7 @@ from rich.table import Table
 
 from agent_eval.reliability import flaky_tasks, suite_reliability_curve
 from agent_eval.schemas import SuiteResult
+from agent_eval.taxonomy import aggregate_failures
 
 
 class ConsoleReporter:
@@ -53,7 +54,19 @@ class ConsoleReporter:
 
         self._reliability(result)
         self._failed_tasks(result)
+        self._taxonomy(result)
         self._top_failures(result)
+
+    def _taxonomy(self, result: SuiteResult) -> None:
+        agg = aggregate_failures({}, result.task_results)
+        if not agg.total_failures:
+            return
+        table = Table(title="Failure taxonomy")
+        table.add_column("Category")
+        table.add_column("Count", justify="right")
+        for category, count in agg.most_common():
+            table.add_row(str(category), str(count))
+        self._console.print(table)
 
     def _reliability(self, result: SuiteResult) -> None:
         curve = suite_reliability_curve(result.task_results)

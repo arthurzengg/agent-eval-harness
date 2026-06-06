@@ -214,6 +214,16 @@ graders and passes at `pass_threshold` (and only if no hard-fail grader, e.g. a
 forbidden tool, failed). In `binary` mode every enabled grader must pass. Partial
 credit is preserved throughout.
 
+### Failure taxonomy
+
+Failing trials are classified into a fixed taxonomy so you can see *how* a suite
+fails, not just that it did. [`agent_eval/taxonomy.py`](src/agent_eval/taxonomy.py)
+inspects each failing trial's transcript and grader results and assigns one
+best-fit category — `timeout`, `recovery_failure`, `looping`,
+`policy_violation`, `wrong_tool`, `wrong_args`, `state_mismatch`, or `other` —
+identifies the first bad step in the transcript, and aggregates the modes across
+a run. The console summary prints the aggregated taxonomy table.
+
 ## 6. How to add a new grader
 
 1. Create `src/agent_eval/graders/my_grader.py`:
