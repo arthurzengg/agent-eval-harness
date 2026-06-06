@@ -31,6 +31,8 @@ class RunConfig:
     scoring_mode: ScoringMode | None = None
     concurrency: int = 1
     keep_workdirs: bool = False
+    retry_attempts: int = 3
+    retry_backoff: float = 0.2
 
 
 @dataclass
@@ -56,6 +58,8 @@ def build_adapter(suite: EvalSuite, config: RunConfig) -> AgentAdapter:
         config.agent,
         agent_url=config.agent_url,
         timeout=suite.defaults.timeout_seconds,
+        retry_attempts=config.retry_attempts,
+        retry_backoff=config.retry_backoff,
     )
 
 

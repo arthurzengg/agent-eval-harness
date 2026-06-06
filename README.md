@@ -136,6 +136,13 @@ agent-eval run \
   --trials 3 --output reports/refund_support_http
 ```
 
+The `http` adapter validates the response body against a typed schema, retries
+transient failures (connection errors, timeouts, 5xx) with exponential backoff
+while failing fast on 4xx / schema errors, sends an `X-Request-ID` header
+recorded in trial metadata, and captures an agent-reported version
+(`agent_version` field or `X-Agent-Version` header). Tune retries with
+`--retry-attempts` (default 3) and `--retry-backoff` (base seconds, default 0.2).
+
 ## 5. Example suite
 
 See [`examples/suites/refund_support.yaml`](examples/suites/refund_support.yaml).
