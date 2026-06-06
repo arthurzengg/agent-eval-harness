@@ -7,6 +7,7 @@ can be unit-tested without instantiating a Textual app.
 from __future__ import annotations
 
 import json
+from datetime import datetime
 
 from agent_eval.schemas import (
     MetricsSummary,
@@ -15,6 +16,7 @@ from agent_eval.schemas import (
     TranscriptStep,
     TrialResult,
 )
+from agent_eval.storage import RunInfo
 
 _ROLE_COLORS = {
     "user": "bright_white",
@@ -194,3 +196,14 @@ def live_progress(done: int, total: int, passed: int, elapsed_s: float) -> str:
 def suite_title(result: SuiteResult) -> str:
     """Window/header title for the browser."""
     return f"{result.suite.name} ({result.suite.id} v{result.suite.version})"
+
+
+def run_label(run: RunInfo) -> str:
+    """One-line summary of a stored run for the run picker."""
+    when = datetime.fromtimestamp(run.mtime).strftime("%Y-%m-%d %H:%M")
+    color = "green" if run.pass_rate >= 1.0 else "yellow" if run.pass_rate > 0.0 else "red"
+    return (
+        f"[b]{run.suite_name}[/b]  [grey62]{when}[/grey62]  "
+        f"[{color}]{_pct(run.pass_rate)}[/{color}] of {run.total_trials} trials  "
+        f"[grey62]{run.path}[/grey62]"
+    )

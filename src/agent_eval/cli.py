@@ -14,7 +14,7 @@ from agent_eval.harness import RunConfig, run_suite_to_disk, write_reports
 from agent_eval.reporters.console_reporter import ConsoleReporter
 from agent_eval.reporters.html_reporter import HTMLReporter
 from agent_eval.schemas import EvalSuite, ScoringMode
-from agent_eval.storage import load_results
+from agent_eval.storage import discover_runs, load_results
 from agent_eval.suite_loader import SuiteLoadError, load_suite
 
 app = typer.Typer(
@@ -140,9 +140,18 @@ def report(
 
 @app.command()
 def ui(
-    results: Path = typer.Option(..., "--results", help="Path to a stored results.json."),
+    results: Path | None = typer.Option(
+        None, "--results", help="Path to a stored results.json. Omit to pick from --dir."
+    ),
+    directory: Path = typer.Option(
+        Path("reports"),
+        "--dir",
+        help="Directory to scan for stored runs when --results is omitted.",
+    ),
 ) -> None:
     """Browse stored results in an interactive terminal UI."""
+    if results is None:
+        results = _pick_results(directory)
     if not results.exists():
         console.print(f"[red]Results file not found:[/red] {results}")
         raise typer.Exit(code=1)
@@ -152,6 +161,28 @@ def ui(
         run_ui(str(results))
     except ModuleNotFoundError as exc:
         _require_ui_extra(exc)
+
+
+def _pick_results(directory: Path) -> Path:
+    """Scan ``directory`` for stored runs and let the user pick one."""
+    runs = discover_runs(directory) if directory.exists() else []
+    if not runs:
+        console.print(
+            f"[red]No stored runs found under[/red] {directory}[red].[/red] "
+            "Run a suite first, or pass [cyan]--results[/cyan] / [cyan]--dir[/cyan]."
+        )
+        raise typer.Exit(code=1)
+
+    from agent_eval.ui import pick_run
+
+    try:
+        chosen = pick_run(runs)
+    except ModuleNotFoundError as exc:
+        _require_ui_extra(exc)
+        raise  # unreachable; _require_ui_extra always raises
+    if chosen is None:
+        raise typer.Exit(code=0)  # user quit the picker
+    return chosen
 
 
 @app.command()

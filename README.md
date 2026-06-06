@@ -89,6 +89,11 @@ agent-eval compare \
 # (requires the optional extra: pip install 'agent-eval-harness[ui]')
 agent-eval ui --results reports/refund_support/results.json
 
+# Without --results, a picker lists every run found under --dir
+# (default: reports/) with suite name, timestamp, and pass rate.
+agent-eval ui
+agent-eval ui --dir reports/
+
 # Or watch a run live: trials tick pending -> running -> pass/fail as they
 # execute (composes with --concurrency), then the results browser opens.
 agent-eval run \

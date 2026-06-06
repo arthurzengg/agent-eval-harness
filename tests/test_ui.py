@@ -218,3 +218,58 @@ async def test_live_run_app_abort_returns_none() -> None:
     async with app.run_test(size=(120, 40)) as pilot:
         await pilot.press("q")  # abort immediately
     assert app.return_value is None
+
+
+def test_discover_runs_lists_newest_first(tmp_path: Path) -> None:
+    import os
+
+    from agent_eval.storage import discover_runs
+
+    old = _demo_results(tmp_path / "old")
+    new = _demo_results(tmp_path / "new")
+    os.utime(old, (1_000_000, 1_000_000))
+    os.utime(new, (2_000_000, 2_000_000))
+    (tmp_path / "junk").mkdir()
+    (tmp_path / "junk" / "results.json").write_text("not json", encoding="utf-8")
+
+    runs = discover_runs(tmp_path)
+    assert [r.path for r in runs] == [new, old]  # junk skipped, newest first
+    assert runs[0].suite_name == "Demo Suite"
+    assert runs[0].total_trials == 3
+
+
+def test_run_label_summarizes_run(tmp_path: Path) -> None:
+    from agent_eval.storage import discover_runs
+
+    _demo_results(tmp_path)
+    label = presenter.run_label(discover_runs(tmp_path)[0])
+    assert "Demo Suite" in label
+    assert "of 3 trials" in label
+    assert "results.json" in label
+
+
+async def test_run_picker_returns_selected_path(tmp_path: Path) -> None:
+    pytest.importorskip("textual")
+    from agent_eval.storage import discover_runs
+    from agent_eval.ui.picker import RunPickerApp
+
+    _demo_results(tmp_path / "a")
+    _demo_results(tmp_path / "b")
+    runs = discover_runs(tmp_path)
+    app = RunPickerApp(runs)
+    async with app.run_test(size=(120, 40)) as pilot:
+        await pilot.pause()
+        await pilot.press("enter")  # choose the highlighted (first) run
+    assert app.return_value == runs[0].path
+
+
+async def test_run_picker_quit_returns_none(tmp_path: Path) -> None:
+    pytest.importorskip("textual")
+    from agent_eval.storage import discover_runs
+    from agent_eval.ui.picker import RunPickerApp
+
+    _demo_results(tmp_path)
+    app = RunPickerApp(discover_runs(tmp_path))
+    async with app.run_test(size=(120, 40)) as pilot:
+        await pilot.press("q")
+    assert app.return_value is None
