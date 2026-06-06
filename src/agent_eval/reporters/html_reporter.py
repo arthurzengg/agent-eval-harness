@@ -8,6 +8,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
+from agent_eval.reliability import flaky_tasks, suite_reliability_curve
 from agent_eval.schemas import SuiteResult
 
 _TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -65,6 +66,8 @@ def render_html(result: SuiteResult) -> str:
         task_results=result.task_results,
         per_grader_detail=_per_grader_detail(result),
         task_tokens=_task_tokens(result),
+        reliability=suite_reliability_curve(result.task_results),
+        flaky=flaky_tasks(result.task_results),
     )
 
 
