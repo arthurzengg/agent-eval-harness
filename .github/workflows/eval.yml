@@ -21,18 +21,20 @@ jobs:
           python-version: "3.11"
 
       - name: Install package
-        run: uv pip install --system -e ".[dev]"
+        run: |
+          uv venv
+          uv pip install -e ".[dev]"
 
       - name: Lint
         run: |
-          ruff check src tests
-          ruff format --check src tests
+          uv run ruff check src tests
+          uv run ruff format --check src tests
 
       - name: Type-check
-        run: mypy
+        run: uv run mypy
 
       - name: Test
-        run: pytest -q
+        run: uv run pytest -q
 
   eval:
     runs-on: ubuntu-latest
@@ -46,11 +48,13 @@ jobs:
           python-version: "3.11"
 
       - name: Install package
-        run: uv pip install --system -e ".[dev]"
+        run: |
+          uv venv
+          uv pip install -e ".[dev]"
 
       - name: Run example eval (echo agent, no secrets)
         run: |
-          agent-eval run \
+          uv run agent-eval run \
             --suite examples/suites/refund_support.yaml \
             --agent echo \
             --trials 3 \
