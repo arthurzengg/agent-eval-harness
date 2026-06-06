@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from agent_eval.schemas import EvalSuite, SuiteResult
     from agent_eval.storage import RunInfo
 
-__all__ = ["pick_run", "run_live", "run_ui"]
+__all__ = ["pick_run", "run_compare_ui", "run_live", "run_ui"]
 
 
 def run_ui(results_path: str) -> None:
@@ -34,3 +34,11 @@ def pick_run(runs: "list[RunInfo]") -> "Path | None":
     from agent_eval.ui.picker import RunPickerApp
 
     return RunPickerApp(runs).run()
+
+
+def run_compare_ui(baseline_path: str, current_path: str) -> None:
+    """Launch the run-comparison browser. Imports Textual lazily like
+    :func:`run_ui`."""
+    from agent_eval.ui.compare_view import CompareApp
+
+    CompareApp(baseline_path, current_path).run()

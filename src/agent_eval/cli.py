@@ -148,8 +148,16 @@ def ui(
         "--dir",
         help="Directory to scan for stored runs when --results is omitted.",
     ),
+    compare: tuple[Path, Path] | None = typer.Option(
+        None,
+        "--compare",
+        help="Two results.json paths (baseline current) to diff side by side.",
+    ),
 ) -> None:
     """Browse stored results in an interactive terminal UI."""
+    if compare is not None:
+        _compare_ui(*compare)
+        return
     if results is None:
         results = _pick_results(directory)
     if not results.exists():
@@ -159,6 +167,20 @@ def ui(
 
     try:
         run_ui(str(results))
+    except ModuleNotFoundError as exc:
+        _require_ui_extra(exc)
+
+
+def _compare_ui(baseline: Path, current: Path) -> None:
+    """Open the run-comparison browser over two stored results files."""
+    for label, path in (("Baseline", baseline), ("Current", current)):
+        if not path.exists():
+            console.print(f"[red]{label} results file not found:[/red] {path}")
+            raise typer.Exit(code=1)
+    from agent_eval.ui import run_compare_ui
+
+    try:
+        run_compare_ui(str(baseline), str(current))
     except ModuleNotFoundError as exc:
         _require_ui_extra(exc)
 
