@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from agent_eval.canonicalize import ArgSpec, args_match, parse_call
 from agent_eval.graders.base import BaseGrader
 from agent_eval.schemas import GraderResult, Task, ToolCall, Trial
 
@@ -23,6 +24,13 @@ class ToolCallsGrader(BaseGrader):
         ordered (bool): required tools must appear in order (default False).
         match_params (bool): require params subset-match (default True).
         allow_partial (bool): if True, forbidden hits do not hard-fail (default False).
+
+    Each required/forbidden entry may instead be written as an AST-style call
+    expression -- ``{call: "process_refund(amount=50)"}`` -- and may carry
+    semantic matching for its params via ``match`` (field -> kind, e.g.
+    ``{amount: amount, when: date, order_id: id}``), an ``aliases`` table per
+    field, or ``fuzzy: true`` (optionally ``fuzzy_threshold``) for whole-arg
+    fuzzy text equality. See ``agent_eval.canonicalize``.
     """
 
     type = "tool_calls"
@@ -32,8 +40,15 @@ class ToolCallsGrader(BaseGrader):
             raise ValueError("requires at least one of 'required' or 'forbidden'.")
         for key in ("required", "forbidden"):
             for item in self.options.get(key, []) or []:
-                if not isinstance(item, dict) or "tool" not in item:
-                    raise ValueError(f"each '{key}' entry must be a mapping with a 'tool' key.")
+                if not isinstance(item, dict) or not ("tool" in item or "call" in item):
+                    raise ValueError(
+                        f"each '{key}' entry must be a mapping with a 'tool' or 'call' key."
+                    )
+                if "call" in item:
+                    try:
+                        parse_call(str(item["call"]))
+                    except ValueError as exc:
+                        raise ValueError(f"invalid 'call' expression: {exc}") from exc
 
     async def grade(self, task: Task, trial: Trial) -> GraderResult:
         required = self.options.get("required", []) or []
@@ -49,7 +64,7 @@ class ToolCallsGrader(BaseGrader):
         forbidden_hits = self._check_forbidden(forbidden, calls, match_params)
 
         for spec in missing:
-            reasons.append(f"Missing required tool: {spec.get('tool')}")
+            reasons.append(f"Missing required tool: {_spec_name(spec)}")
         for name in forbidden_hits:
             reasons.append(f"Forbidden tool called: {name}")
 
@@ -81,7 +96,7 @@ class ToolCallsGrader(BaseGrader):
             details={
                 "required_total": total,
                 "required_satisfied": len(satisfied),
-                "missing": [s.get("tool") for s in missing],
+                "missing": [_spec_name(s) for s in missing],
                 "forbidden_hits": forbidden_hits,
                 "ordered": ordered,
             },
@@ -104,7 +119,7 @@ class ToolCallsGrader(BaseGrader):
         hits: list[str] = []
         for spec in forbidden:
             if any(_matches(spec, call, match_params) for call in calls):
-                hits.append(str(spec.get("tool")))
+                hits.append(_spec_name(spec))
         return hits
 
     def _check_order(
@@ -117,10 +132,39 @@ class ToolCallsGrader(BaseGrader):
         return idx == len(required)
 
 
+def _spec_name(spec: dict[str, Any]) -> str:
+    """Display name for a spec, resolving an AST 'call' expression if present."""
+    name, _ = _resolve_spec(spec)
+    return str(name)
+
+
+def _resolve_spec(spec: dict[str, Any]) -> tuple[str | None, dict[str, Any]]:
+    """Return the (tool_name, params) for a spec, supporting AST 'call' exprs."""
+    if "call" in spec:
+        parsed = parse_call(str(spec["call"]))
+        return parsed.name, parsed.kwargs
+    return spec.get("tool"), (spec.get("params") or {})
+
+
+def _arg_specs(spec: dict[str, Any]) -> tuple[dict[str, ArgSpec], ArgSpec]:
+    """Build per-field and default ``ArgSpec``s from a spec's match options."""
+    aliases = spec.get("aliases") or {}
+    per_field = {
+        field: ArgSpec(kind=str(kind), aliases=aliases.get(field, {}))
+        for field, kind in (spec.get("match") or {}).items()
+    }
+    if spec.get("fuzzy"):
+        default = ArgSpec(kind="fuzzy", fuzzy_threshold=float(spec.get("fuzzy_threshold", 0.85)))
+    else:
+        default = ArgSpec()
+    return per_field, default
+
+
 def _matches(spec: dict[str, Any], call: ToolCall, match_params: bool) -> bool:
-    if spec.get("tool") != call.name:
+    tool, params = _resolve_spec(spec)
+    if tool != call.name:
         return False
-    if not match_params:
+    if not match_params or not params:
         return True
-    params = spec.get("params") or {}
-    return all(call.arguments.get(k) == v for k, v in params.items())
+    per_field, default = _arg_specs(spec)
+    return args_match(params, call.arguments, per_field, default=default)

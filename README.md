@@ -258,6 +258,26 @@ a run. The console summary prints the aggregated taxonomy table.
 2. Register it in `src/agent_eval/graders/__init__.py` by adding the class to the
    `_GRADERS` map. Configure it in a suite with `- type: my_grader`.
 
+### Semantic tool-call matching
+
+Exact argument equality is brittle, so the `tool_calls` grader supports semantic
+matching via [`agent_eval/canonicalize.py`](src/agent_eval/canonicalize.py).
+Per required/forbidden entry you can add `match` (field -> kind) to canonicalize
+arguments before comparing — `amount` (`"$1,000.00"` == `1000`), `date`
+(`"01/05/2021"` == `"2021-01-05"`), `id` (`"a-100"` == `"A100"`), `text`/`casing`,
+`sorted`/`ordering` (order-insensitive lists), or `alias`/`enum` (with a per-field
+`aliases` table). Set `fuzzy: true` (optional `fuzzy_threshold`) for whole-argument
+fuzzy text equality. Entries may also be written as AST-style call expressions —
+`{call: "process_refund(amount=50)"}` — parsed safely with `ast` (literals only).
+
+```yaml
+- type: tool_calls
+  required:
+    - tool: process_refund
+      params: { amount: 50, order_id: A100, when: "2021-01-05" }
+      match: { amount: amount, order_id: id, when: date }
+```
+
 Read `self.options` for grader-specific config; use `self.result(...)` to build
 the `GraderResult` with the configured weight. Set `hard_fail=True` for failures
 that should sink the task regardless of weighted score.
