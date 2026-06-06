@@ -283,6 +283,15 @@ beyond the tolerance, and the JSON + HTML reports are uploaded as artifacts on
 every run (including failures). Regenerate the baseline after an intentional
 change with `make baseline`, and check the gate locally with `make compare`.
 
+For noisy agents, gate on *statistical significance* rather than any raw drop.
+`agent-eval compare --significance` runs a paired bootstrap and a paired t-test
+over the per-task pass rates shared by both runs and fails the build only when
+both agree the regression is significant at `--alpha` (default 0.05). It also
+reports the mean delta with a bootstrap 95% confidence interval, the paired
+effect size (Cohen's d), and both p-values. The statistics live in
+[`agent_eval/stats.py`](src/agent_eval/stats.py) and use only the standard
+library (seeded, deterministic).
+
 ## 9. Limitations and next steps
 
 - **LLM judge is interface-only.** Only the `mock` provider is wired up; OpenAI /

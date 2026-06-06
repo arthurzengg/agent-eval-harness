@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from agent_eval.schemas import SuiteResult
+from agent_eval.stats import SignificanceReport, compare_significance
 
 # Metrics where a higher value is better; these gate the comparison.
 GATED_METRICS = ("pass_rate", "pass_at_k", "pass_caret_k", "avg_score")
@@ -118,3 +119,33 @@ def compare_results(
         )
 
     return report
+
+
+def shared_task_pass_rates(
+    baseline: SuiteResult, current: SuiteResult
+) -> tuple[list[float], list[float]]:
+    """Aligned per-task pass rates for tasks present in both runs.
+
+    Returns ``(baseline_values, current_values)`` in a stable, shared task order.
+    Tasks present on only one side are dropped, since a paired test needs pairs.
+    """
+    base = {tr.task_id: tr.pass_rate for tr in baseline.task_results}
+    cur = {tr.task_id: tr.pass_rate for tr in current.task_results}
+    shared = sorted(base.keys() & cur.keys())
+    return [base[t] for t in shared], [cur[t] for t in shared]
+
+
+def significance_report(
+    baseline: SuiteResult,
+    current: SuiteResult,
+    *,
+    metric: str = "pass_rate",
+    alpha: float = 0.05,
+) -> SignificanceReport:
+    """Paired statistical comparison of per-task pass rates between two runs.
+
+    Use ``SignificanceReport.significant_regression`` to gate CI on a
+    statistically significant drop rather than any raw decrease.
+    """
+    base_vals, cur_vals = shared_task_pass_rates(baseline, current)
+    return compare_significance(base_vals, cur_vals, metric=metric, alpha=alpha)

@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from agent_eval.compare import compare_results
+from agent_eval.compare import compare_results, significance_report
 from agent_eval.graders import validate_suite_graders  # also registers graders
 from agent_eval.harness import RunConfig, run_suite_to_disk, write_reports
 from agent_eval.reporters.console_reporter import ConsoleReporter
@@ -240,6 +240,15 @@ def compare(
     tolerance: float = typer.Option(
         0.0, "--tolerance", min=0.0, help="Allowed drop before a metric counts as regressed."
     ),
+    significance: bool = typer.Option(
+        False,
+        "--significance",
+        help="Gate on a statistically significant regression (paired bootstrap + t-test) "
+        "instead of a raw score drop.",
+    ),
+    alpha: float = typer.Option(
+        0.05, "--alpha", min=0.0, max=1.0, help="Significance level for --significance."
+    ),
 ) -> None:
     """Compare a run against a baseline; exit non-zero on regression."""
     for label, path in (("Baseline", baseline), ("Current", current)):
@@ -247,7 +256,9 @@ def compare(
             console.print(f"[red]{label} results file not found:[/red] {path}")
             raise typer.Exit(code=1)
 
-    report = compare_results(load_results(baseline), load_results(current), tolerance)
+    base_result = load_results(baseline)
+    cur_result = load_results(current)
+    report = compare_results(base_result, cur_result, tolerance)
 
     table = Table(title=f"Baseline vs current (tolerance {tolerance:g})")
     table.add_column("Metric")
@@ -273,6 +284,17 @@ def compare(
         for t in regressed_tasks:
             ttable.add_row(t.task_id, f"{t.baseline:.3f}", f"{t.current:.3f}")
         console.print(ttable)
+
+    if significance:
+        sig = significance_report(base_result, cur_result, alpha=alpha)
+        console.print(f"\nPaired significance over {sig.n_pairs} shared task(s): {sig.summary()}")
+        if sig.significant_regression:
+            console.print(f"[red]SIGNIFICANT REGRESSION[/red] (p < {alpha:g} in both tests).")
+            raise typer.Exit(code=1)
+        console.print(
+            f"[green]OK[/green] no statistically significant regression (alpha={alpha:g})."
+        )
+        return
 
     if report.regressed:
         console.print(f"[red]REGRESSED[/red] ({len(report.regressions)} check(s) dropped).")
