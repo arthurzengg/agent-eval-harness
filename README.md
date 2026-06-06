@@ -383,6 +383,18 @@ effect size (Cohen's d), and both p-values. The statistics live in
 [`agent_eval/stats.py`](src/agent_eval/stats.py) and use only the standard
 library (seeded, deterministic).
 
+### Coverage-aware dataset sampling
+
+To build a representative suite from production logs,
+[`agent_eval/sampling.py`](src/agent_eval/sampling.py) samples cases to
+*maximize coverage* while prioritizing risk, frequency, and failure history.
+`sample_cases` greedily picks the records that add the most new coverage across
+intent, task type, risk, tools, policies, failure modes, and edge cases
+(ties broken by a risk + frequency + prior-failure priority — deterministic, no
+RNG). `coverage_matrix` reports the suite coverage matrix (value -> count per
+dimension), and `coverage_report` compares a sample against the full universe
+and lists the gaps.
+
 ## 9. Limitations and next steps
 
 - **LLM judge is interface-only.** Only the `mock` provider is wired up; OpenAI /
