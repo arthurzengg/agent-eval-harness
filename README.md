@@ -63,11 +63,14 @@ Direct CLI usage:
 # Validate a suite
 agent-eval validate examples/suites/refund_support.yaml
 
-# Run a suite against the deterministic echo agent, 3 trials each
+# Run a suite against the deterministic echo agent, 3 trials each.
+# --concurrency runs up to N trials at once (default 1 = serial); raise it to
+# parallelize slow network/LLM-backed agents while keeping results ordered.
 agent-eval run \
   --suite examples/suites/refund_support.yaml \
   --agent echo \
   --trials 3 \
+  --concurrency 8 \
   --output reports/refund_support
 
 # Regenerate the HTML report from stored JSON results

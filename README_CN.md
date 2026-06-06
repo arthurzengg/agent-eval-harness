@@ -58,6 +58,7 @@ agent-eval validate examples/suites/refund_support.yaml
 agent-eval run \
   --suite examples/suites/refund_support.yaml \
   --agent echo --trials 3 \
+  --concurrency 8 \
   --output reports/refund_support
 
 agent-eval report \
