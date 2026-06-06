@@ -60,9 +60,10 @@ class Runner:
     async def _run_task(self, suite: EvalSuite, task: Task) -> TaskResult:
         trials = suite.task_trials(task)
         scoring = suite.task_scoring(task)
+        timeout = suite.task_timeout(task)
         trial_results: list[TrialResult] = []
         for index in range(trials):
-            trial = await self._run_trial(task, index)
+            trial = await self._run_trial(task, index, timeout)
             grader_results = await self._grade(task, trial)
             score, passed = score_trial(grader_results, scoring)
             trial_results.append(
@@ -77,13 +78,13 @@ class Runner:
             avg_score=sum(t.score for t in trial_results) / num,
         )
 
-    async def _run_trial(self, task: Task, index: int) -> Trial:
+    async def _run_trial(self, task: Task, index: int, timeout: float) -> Trial:
         env = self._env_factory()
         trial_id = str(index)
         start = time.perf_counter()
         try:
             await env.setup(task, trial_id)
-            result = await self._adapter.run(task, env)
+            result = await asyncio.wait_for(self._adapter.run(task, env), timeout)
             latency_ms = (time.perf_counter() - start) * 1000.0
             outcome = _merge_state(result.outcome, env)
             return Trial(
@@ -95,6 +96,14 @@ class Runner:
                 metadata=result.metadata,
                 latency_ms=latency_ms,
                 error=result.error,
+            )
+        except TimeoutError:
+            latency_ms = (time.perf_counter() - start) * 1000.0
+            return Trial(
+                task_id=task.id,
+                index=index,
+                latency_ms=latency_ms,
+                error=f"Trial timed out after {timeout:g}s.",
             )
         except Exception as exc:  # noqa: BLE001 - record, never crash the suite
             latency_ms = (time.perf_counter() - start) * 1000.0

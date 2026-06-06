@@ -107,6 +107,7 @@ class Task(BaseModel):
     expected_outcome: dict[str, JSONValue] = Field(default_factory=dict)
     graders: list[GraderConfig] = Field(default_factory=list)
     trials: int | None = Field(default=None, ge=1)
+    timeout_seconds: float | None = Field(default=None, gt=0.0)
     scoring: Scoring | None = None
     metadata: dict[str, JSONValue] = Field(default_factory=dict)
 
@@ -127,6 +128,14 @@ class EvalSuite(BaseModel):
     def task_scoring(self, task: Task) -> Scoring:
         """Resolve the scoring policy for a task, falling back to defaults."""
         return task.scoring if task.scoring is not None else self.defaults.scoring
+
+    def task_timeout(self, task: Task) -> float:
+        """Resolve the per-trial timeout (seconds) for a task, falling back to defaults."""
+        return (
+            task.timeout_seconds
+            if task.timeout_seconds is not None
+            else self.defaults.timeout_seconds
+        )
 
 
 # --------------------------------------------------------------------------- #
