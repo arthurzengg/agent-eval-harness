@@ -59,6 +59,12 @@ def run(
     concurrency: int = typer.Option(
         1, "--concurrency", min=1, help="Max trials to run at once (default 1 = serial)."
     ),
+    retry_attempts: int = typer.Option(
+        3, "--retry-attempts", min=1, help="http agent: total attempts on transient failures."
+    ),
+    retry_backoff: float = typer.Option(
+        0.2, "--retry-backoff", min=0.0, help="http agent: base backoff seconds between retries."
+    ),
     ui: bool = typer.Option(
         False, "--ui", help="Watch the run live in the terminal UI, then browse results."
     ),
@@ -77,6 +83,8 @@ def run(
         scoring_mode=ScoringMode(scoring_mode) if scoring_mode is not None else None,
         concurrency=concurrency,
         keep_workdirs=keep_workdirs,
+        retry_attempts=retry_attempts,
+        retry_backoff=retry_backoff,
     )
 
     if ui:
