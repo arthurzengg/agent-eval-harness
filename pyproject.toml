@@ -48,6 +48,8 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "W"]
+# Typer relies on function-call defaults (typer.Option/Argument) by design.
+per-file-ignores = { "src/agent_eval/cli.py" = ["B008"] }
 
 [tool.mypy]
 plugins = ["pydantic.mypy"]
