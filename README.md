@@ -74,7 +74,17 @@ agent-eval run \
 agent-eval report \
   --results reports/refund_support/results.json \
   --output reports/refund_support/index.html
+
+# Browse stored results in an interactive terminal UI
+# (requires the optional extra: pip install 'agent-eval-harness[ui]')
+agent-eval ui --results reports/refund_support/results.json
 ```
+
+The `ui` command opens a full-screen terminal browser: a task tree with
+per-trial pass/fail markers and suite metrics (`pass@k`, `pass^k`) on the
+left, and the selected trial's grader verdicts and full transcript (tool
+calls, results, errors, timings) on the right. Navigate with the arrow keys,
+switch panes with `tab`, quit with `q`.
 
 Artifacts written under `--output`:
 
