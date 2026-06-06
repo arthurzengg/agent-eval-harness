@@ -4,6 +4,7 @@ from agent_eval.graders.argument_schema import ArgumentSchemaGrader
 from agent_eval.graders.base import BaseGrader
 from agent_eval.graders.exact_match import ExactMatchGrader
 from agent_eval.graders.llm_rubric import LLMRubricGrader
+from agent_eval.graders.milestone import MilestoneGrader
 from agent_eval.graders.regex import RegexGrader
 from agent_eval.graders.state_check import StateCheckGrader
 from agent_eval.graders.tool_calls import ToolCallsGrader
@@ -18,6 +19,7 @@ _GRADERS: dict[str, type[BaseGrader]] = {
     ArgumentSchemaGrader.type: ArgumentSchemaGrader,
     StateCheckGrader.type: StateCheckGrader,
     TranscriptGrader.type: TranscriptGrader,
+    MilestoneGrader.type: MilestoneGrader,
     LLMRubricGrader.type: LLMRubricGrader,
 }
 
@@ -65,6 +67,7 @@ __all__ = [
     "validate_suite_graders",
     "ExactMatchGrader",
     "LLMRubricGrader",
+    "MilestoneGrader",
     "RegexGrader",
     "StateCheckGrader",
     "ToolCallsGrader",

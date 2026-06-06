@@ -207,7 +207,22 @@ tasks:
 ```
 
 **Graders available:** `exact_match`, `regex`, `tool_calls`, `argument_schema`,
-`state_check`, `transcript`, `llm_rubric` (disabled by default).
+`state_check`, `transcript`, `milestone`, `llm_rubric` (disabled by default).
+
+The `milestone` grader scores *intermediate* progress, not just the final
+outcome. Each milestone is satisfied by a tool call, a phrase in the output, or
+a final-state expectation, and ordering can be enforced either across the whole
+list (`ordered: true`) or pairwise via `after:` — so
+"identity verified before refund processed" is expressed as
+`{name: refund_processed, tool: process_refund, after: [identity_verified]}`.
+
+```yaml
+- type: milestone
+  ordered: true
+  milestones:
+    - { name: identity_verified, tool: verify_identity }
+    - { name: refund_processed, tool: process_refund }
+```
 
 **Scoring:** in `weighted` mode the task score is the weighted average of enabled
 graders and passes at `pass_threshold` (and only if no hard-fail grader, e.g. a
