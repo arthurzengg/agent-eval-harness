@@ -55,7 +55,8 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 make install        # provision Python 3.11 and install the package
-make test           # run the pytest suite
+make test           # run the pytest suite (measures coverage, fails under 85%)
+make coverage       # same gate plus a browsable htmlcov/ report
 make lint           # ruff check + format check
 make typecheck      # mypy (strict)
 make run-example    # run the refund_support suite with the echo agent
