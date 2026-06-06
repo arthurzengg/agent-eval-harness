@@ -10,9 +10,9 @@ import typer
 from rich.console import Console
 
 import agent_eval.adapters  # noqa: F401 - register adapters
-import agent_eval.graders  # noqa: F401 - register graders
 from agent_eval.adapters.base import AgentAdapter
 from agent_eval.environments.local_tempdir import LocalTempDirEnvironment
+from agent_eval.graders import validate_suite_graders  # also registers graders
 from agent_eval.registry import adapter_registry
 from agent_eval.reporters.console_reporter import ConsoleReporter
 from agent_eval.reporters.html_reporter import HTMLReporter
@@ -37,6 +37,14 @@ def validate(suite: Path = typer.Argument(..., help="Path to an eval suite YAML 
     except SuiteLoadError as exc:
         console.print(f"[red]Invalid suite:[/red] {exc}")
         raise typer.Exit(code=1) from exc
+
+    grader_errors = validate_suite_graders(loaded)
+    if grader_errors:
+        console.print(f"[red]Invalid grader configuration in {suite}:[/red]")
+        for err in grader_errors:
+            console.print(f"  - {err}")
+        raise typer.Exit(code=1)
+
     console.print(
         f"[green]OK[/green] {suite}: suite '{loaded.suite.id}' with {len(loaded.tasks)} task(s)."
     )

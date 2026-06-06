@@ -17,6 +17,10 @@ class ExactMatchGrader(BaseGrader):
 
     type = "exact_match"
 
+    def validate_config(self) -> None:
+        if "expected" not in self.options:
+            raise ValueError("requires an 'expected' string.")
+
     async def grade(self, task: Task, trial: Trial) -> GraderResult:
         expected = self.options.get("expected")
         if expected is None:

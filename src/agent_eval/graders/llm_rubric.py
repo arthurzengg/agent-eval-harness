@@ -79,6 +79,10 @@ class LLMRubricGrader(BaseGrader):
         super().__init__(config)
         self._provider = provider
 
+    def validate_config(self) -> None:
+        if not self.options.get("assertions"):
+            raise ValueError("requires one or more 'assertions'.")
+
     async def grade(self, task: Task, trial: Trial) -> GraderResult:
         if not self.config.enabled:
             return self.result(

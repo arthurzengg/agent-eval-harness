@@ -27,6 +27,14 @@ class ToolCallsGrader(BaseGrader):
 
     type = "tool_calls"
 
+    def validate_config(self) -> None:
+        if not self.options.get("required") and not self.options.get("forbidden"):
+            raise ValueError("requires at least one of 'required' or 'forbidden'.")
+        for key in ("required", "forbidden"):
+            for item in self.options.get(key, []) or []:
+                if not isinstance(item, dict) or "tool" not in item:
+                    raise ValueError(f"each '{key}' entry must be a mapping with a 'tool' key.")
+
     async def grade(self, task: Task, trial: Trial) -> GraderResult:
         required = self.options.get("required", []) or []
         forbidden = self.options.get("forbidden", []) or []

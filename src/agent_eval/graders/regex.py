@@ -20,6 +20,17 @@ class RegexGrader(BaseGrader):
 
     type = "regex"
 
+    def validate_config(self) -> None:
+        patterns = self.options.get("patterns")
+        if not patterns:
+            raise ValueError("requires one or more 'patterns'.")
+        candidates = [patterns] if isinstance(patterns, str) else list(patterns)
+        for p in candidates:
+            try:
+                re.compile(p)
+            except re.error as exc:
+                raise ValueError(f"invalid regex {p!r}: {exc}") from exc
+
     async def grade(self, task: Task, trial: Trial) -> GraderResult:
         patterns = self.options.get("patterns", [])
         if isinstance(patterns, str):
