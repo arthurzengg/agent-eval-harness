@@ -59,6 +59,9 @@ def run(
     scoring_mode: str | None = typer.Option(
         None, "--scoring-mode", help="Override scoring mode (weighted | binary)."
     ),
+    concurrency: int = typer.Option(
+        1, "--concurrency", min=1, help="Max trials to run at once (default 1 = serial)."
+    ),
 ) -> None:
     """Run an eval suite against an agent adapter."""
     try:
@@ -75,7 +78,11 @@ def run(
     adapter = adapter_registry.create(
         agent, agent_url=agent_url, timeout=loaded.defaults.timeout_seconds
     )
-    runner = Runner(adapter, env_factory=lambda: LocalTempDirEnvironment(keep_workdirs))
+    runner = Runner(
+        adapter,
+        env_factory=lambda: LocalTempDirEnvironment(keep_workdirs),
+        concurrency=concurrency,
+    )
     result = asyncio.run(runner.run_suite(loaded))
 
     json_path = JSONReporter().render(result, output)

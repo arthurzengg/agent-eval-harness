@@ -40,33 +40,46 @@ class Runner:
         self,
         adapter: AgentAdapter,
         env_factory: EnvFactory | None = None,
+        concurrency: int = 1,
     ) -> None:
         self._adapter = adapter
         self._env_factory = env_factory or (lambda: LocalTempDirEnvironment())
+        self._concurrency = max(1, concurrency)
 
     async def run_suite(self, suite: EvalSuite) -> SuiteResult:
-        task_results = [await self._run_task(suite, task) for task in suite.tasks]
+        # One semaphore shared across every trial in the suite bounds the global
+        # in-flight agent count, regardless of how trials split across tasks.
+        sem = asyncio.Semaphore(self._concurrency)
+        task_results = await asyncio.gather(
+            *(self._run_task(suite, task, sem) for task in suite.tasks)
+        )
         max_k = max((suite.task_trials(t) for t in suite.tasks), default=1)
-        metrics = compute_metrics(task_results, k=max_k)
+        metrics = compute_metrics(list(task_results), k=max_k)
         return SuiteResult(
             suite=suite.suite,
             scoring_mode=suite.defaults.scoring.mode,
-            task_results=task_results,
+            task_results=list(task_results),
             metrics=metrics,
         )
 
-    async def _run_task(self, suite: EvalSuite, task: Task) -> TaskResult:
+    async def _run_task(self, suite: EvalSuite, task: Task, sem: asyncio.Semaphore) -> TaskResult:
         trials = suite.task_trials(task)
         scoring = suite.task_scoring(task)
         timeout = suite.task_timeout(task)
-        trial_results: list[TrialResult] = []
-        for index in range(trials):
-            trial = await self._run_trial(task, index, timeout)
+
+        async def run_one(index: int) -> TrialResult:
+            # Only the agent run is gated by the semaphore; grading is cheap,
+            # local, and need not occupy a concurrency slot.
+            async with sem:
+                trial = await self._run_trial(task, index, timeout)
             grader_results = await self._grade(task, trial)
             score, passed = score_trial(grader_results, scoring)
-            trial_results.append(
-                TrialResult(trial=trial, grader_results=grader_results, score=score, passed=passed)
+            return TrialResult(
+                trial=trial, grader_results=grader_results, score=score, passed=passed
             )
+
+        # gather preserves order, so trials stay in definition order.
+        trial_results = list(await asyncio.gather(*(run_one(i) for i in range(trials))))
 
         num = len(trial_results) or 1
         return TaskResult(
