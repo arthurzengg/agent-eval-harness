@@ -73,24 +73,41 @@ def _fmt_json(value: object) -> str:
         return str(value)
 
 
-def format_step(step: TranscriptStep, index: int) -> str:
+#: Maximum lines a JSON blob may occupy in the detail pane before truncation.
+TRUNCATE_LINES = 12
+
+
+def _truncate(text: str, expand: bool) -> str:
+    """Cap ``text`` at ``TRUNCATE_LINES`` lines unless ``expand`` is set."""
+    if expand:
+        return text
+    lines = text.splitlines()
+    if len(lines) <= TRUNCATE_LINES:
+        return text
+    hidden = len(lines) - TRUNCATE_LINES
+    kept = "\n".join(lines[:TRUNCATE_LINES])
+    return f"{kept}\n[grey62]… (+{hidden} lines · press e to expand)[/grey62]"
+
+
+def format_step(step: TranscriptStep, index: int, *, expand: bool = False) -> str:
     """Render one transcript step as markup lines."""
     color = _ROLE_COLORS.get(step.role.value, "white")
     lines = [f"[{color} b]{index:>3} {step.role.value.upper()}[/]"]
     if step.content is not None and step.content != "":
         content = step.content if isinstance(step.content, str) else _fmt_json(step.content)
-        lines.append(f"    {content}")
+        lines.append(f"    {_truncate(content, expand)}")
     if step.tool_call is not None:
         lines.append(f"    [medium_purple1]→ {step.tool_call.name}[/medium_purple1]")
         if step.tool_call.arguments:
-            args = _fmt_json(step.tool_call.arguments).replace("\n", "\n      ")
-            lines.append(f"      {args}")
+            args = _truncate(_fmt_json(step.tool_call.arguments), expand)
+            lines.append(f"      {args.replace(chr(10), chr(10) + '      ')}")
     if step.tool_result is not None:
         name = step.tool_result.name or "tool"
         if step.tool_result.error:
             lines.append(f"    [red]← {name} error: {step.tool_result.error}[/red]")
         else:
-            content = _fmt_json(step.tool_result.content).replace("\n", "\n      ")
+            content = _truncate(_fmt_json(step.tool_result.content), expand)
+            content = content.replace("\n", "\n      ")
             lines.append(f"    [dark_sea_green4]← {name}[/dark_sea_green4] {content}")
     meta: list[str] = []
     if step.duration_ms is not None:
@@ -122,7 +139,7 @@ def format_graders(trial: TrialResult) -> str:
     return "\n".join(lines)
 
 
-def format_trial_detail(trial: TrialResult) -> str:
+def format_trial_detail(trial: TrialResult, *, expand: bool = False) -> str:
     """Full right-pane detail for a trial: header, graders, transcript."""
     status = "[green b]PASS[/]" if trial.passed else "[red b]FAIL[/]"
     parts = [
@@ -137,12 +154,14 @@ def format_trial_detail(trial: TrialResult) -> str:
     parts.append(format_graders(trial))
     if trial.trial.outcome.state:
         parts.append("\n[b]Outcome[/b]")
-        parts.append(_fmt_json(trial.trial.outcome.state))
+        parts.append(_truncate(_fmt_json(trial.trial.outcome.state), expand))
     if trial.trial.final_output:
         parts.append("\n[b]Final output[/b]")
         parts.append(trial.trial.final_output)
     parts.append("\n[b]Transcript[/b]")
-    parts.extend(format_step(step, i) for i, step in enumerate(trial.trial.transcript.steps))
+    parts.extend(
+        format_step(step, i, expand=expand) for i, step in enumerate(trial.trial.transcript.steps)
+    )
     return "\n".join(parts)
 
 

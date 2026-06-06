@@ -102,30 +102,71 @@ def test_format_step_handles_errors() -> None:
     assert "step failed" in text
 
 
-async def test_app_smoke_navigates_results(tmp_path: Path) -> None:
-    textual = pytest.importorskip("textual")
-    assert textual is not None
-    from agent_eval.ui.app import EvalBrowserApp
+def test_truncate_caps_long_blobs() -> None:
+    big = {f"key_{i}": i for i in range(50)}
+    step = TranscriptStep(role=Role.tool, tool_result=ToolResult(name="big", content=big))
+    short = presenter.format_step(step, 0)
+    assert "press e to expand" in short
+    full = presenter.format_step(step, 0, expand=True)
+    assert "press e to expand" not in full
+    assert "key_49" in full
 
+
+def test_truncate_leaves_short_blobs_alone() -> None:
+    step = TranscriptStep(
+        role=Role.tool, tool_result=ToolResult(name="small", content={"ok": True})
+    )
+    assert "press e to expand" not in presenter.format_step(step, 0)
+
+
+def _demo_results(tmp_path: Path) -> Path:
     result = SuiteResult(
         suite=SuiteMetadata(id="demo", name="Demo Suite"),
         task_results=[
             TaskResult(
-                task_id="t",
+                task_id="all_pass",
+                trials=[_trial_result(passed=True)],
+                pass_rate=1.0,
+                avg_score=1.0,
+            ),
+            TaskResult(
+                task_id="flaky",
                 trials=[_trial_result(passed=True), _trial_result(passed=False, index=1)],
                 pass_rate=0.5,
                 avg_score=0.7,
-            )
+            ),
         ],
-        metrics=MetricsSummary(total_tasks=1, total_trials=2, k=2),
+        metrics=MetricsSummary(total_tasks=2, total_trials=3, k=2),
     )
-    results_path = write_results(result, tmp_path)
+    return write_results(result, tmp_path)
 
-    app = EvalBrowserApp(results_path)
+
+async def test_app_selects_first_failure_on_mount(tmp_path: Path) -> None:
+    pytest.importorskip("textual")
+    from agent_eval.ui.app import EvalBrowserApp
+
+    app = EvalBrowserApp(_demo_results(tmp_path))
     async with app.run_test(size=(120, 40)) as pilot:
-        # Detail pane is populated on mount (first trial auto-selected).
-        detail = app.query_one("#detail")
-        assert str(detail.render())  # non-empty
-        await pilot.press("down", "down", "enter")
-        assert str(detail.render())
+        await pilot.pause()
+        assert app._current is not None
+        assert not app._current.passed  # failure-first selection
+        await pilot.press("q")
+
+
+async def test_app_failures_filter_and_jumps(tmp_path: Path) -> None:
+    pytest.importorskip("textual")
+    from agent_eval.ui.app import EvalBrowserApp
+
+    app = EvalBrowserApp(_demo_results(tmp_path))
+    async with app.run_test(size=(120, 40)) as pilot:
+        await pilot.pause()
+        assert len(app._trial_nodes) == 3
+        await pilot.press("f")  # failures only
+        assert len(app._trial_nodes) == 1
+        assert all(n.data is not None and not n.data.passed for n in app._trial_nodes)
+        await pilot.press("f")  # back to all trials
+        assert len(app._trial_nodes) == 3
+        await pilot.press("n")  # jump wraps to the (only) failure
+        assert app._current is not None and not app._current.passed
+        await pilot.press("e")  # expand toggle re-renders without error
         await pilot.press("q")
