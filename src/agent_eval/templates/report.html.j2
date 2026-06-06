@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ suite.name }} — eval report</title>
+<style>
+  :root { --fg:#1b1f24; --muted:#57606a; --line:#e3e6ea; --ok:#1a7f37; --bad:#cf222e; --bg:#fff; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+         color: #1b1f24; margin: 0; background: #f6f8fa; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 24px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  h2 { margin: 28px 0 10px; font-size: 17px; border-bottom: 1px solid #e3e6ea; padding-bottom: 6px; }
+  .muted { color: #57606a; }
+  .cards { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 14px; }
+  .card { background: #fff; border: 1px solid #e3e6ea; border-radius: 8px; padding: 12px 16px; min-width: 130px; }
+  .card .k { font-size: 12px; color: #57606a; text-transform: uppercase; letter-spacing: .04em; }
+  .card .v { font-size: 20px; font-weight: 600; margin-top: 4px; }
+  table { border-collapse: collapse; width: 100%; background: #fff; border: 1px solid #e3e6ea; border-radius: 8px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #eef1f4; font-size: 14px; vertical-align: top; }
+  th { background: #f6f8fa; font-weight: 600; }
+  .pass { color: #1a7f37; font-weight: 600; }
+  .fail { color: #cf222e; font-weight: 600; }
+  .bar { height: 8px; border-radius: 4px; background: #eef1f4; overflow: hidden; min-width: 80px; }
+  .bar > span { display: block; height: 100%; background: #1a7f37; }
+  details { background: #fff; border: 1px solid #e3e6ea; border-radius: 8px; margin: 8px 0; padding: 6px 12px; }
+  summary { cursor: pointer; font-weight: 600; }
+  pre { background: #f6f8fa; border-radius: 6px; padding: 10px; overflow: auto; font-size: 12.5px; }
+  .step { border-left: 3px solid #d0d7de; padding: 4px 10px; margin: 6px 0; }
+  .step.assistant { border-color: #0969da; }
+  .step.tool { border-color: #8250df; }
+  .step.user { border-color: #57606a; }
+  .role { font-size: 11px; text-transform: uppercase; color: #57606a; letter-spacing: .04em; }
+  .timeline { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .chip { background: #ddf4ff; border: 1px solid #b6e3ff; color: #0969da; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
+  .reason { color: #cf222e; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>{{ suite.name }}</h1>
+  <div class="muted">{{ suite.id }} · v{{ suite.version }} · scoring: {{ scoring_mode }}</div>
+  {% if suite.description %}<p class="muted">{{ suite.description }}</p>{% endif %}
+
+  <h2>Metrics</h2>
+  <div class="cards">
+    {% set m = metrics %}
+    <div class="card"><div class="k">Tasks</div><div class="v">{{ m.total_tasks }}</div></div>
+    <div class="card"><div class="k">Trials</div><div class="v">{{ m.total_trials }}</div></div>
+    <div class="card"><div class="k">Pass rate</div><div class="v">{{ pct(m.pass_rate) }}</div></div>
+    <div class="card"><div class="k">pass@{{ m.k }}</div><div class="v">{{ pct(m.pass_at_k) }}</div></div>
+    <div class="card"><div class="k">pass^{{ m.k }}</div><div class="v">{{ pct(m.pass_caret_k) }}</div></div>
+    <div class="card"><div class="k">Avg score</div><div class="v">{{ '%.3f'|format(m.avg_score) }}</div></div>
+    <div class="card"><div class="k">Avg latency</div><div class="v">{{ '%.0f'|format(m.avg_latency_ms) }} ms</div></div>
+    <div class="card"><div class="k">Error rate</div><div class="v">{{ pct(m.error_rate) }}</div></div>
+  </div>
+
+  <h2>Per-grader pass rate</h2>
+  <table>
+    <tr><th>Grader</th><th>Pass rate</th></tr>
+    {% for g, rate in metrics.per_grader.items() %}
+    <tr><td>{{ g }}</td><td>{{ pct(rate) }}</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>Tasks</h2>
+  <table>
+    <tr><th>Task</th><th>Passed / Trials</th><th>Avg score</th><th></th></tr>
+    {% for tr in task_results %}
+    <tr>
+      <td><a href="#task-{{ tr.task_id }}">{{ tr.task_id }}</a></td>
+      <td>{{ tr.num_passed }} / {{ tr.num_trials }}</td>
+      <td>{{ '%.3f'|format(tr.avg_score) }}</td>
+      <td><div class="bar"><span style="width: {{ (tr.pass_rate * 100)|round }}%"></span></div></td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  {% for tr in task_results %}
+  <h2 id="task-{{ tr.task_id }}">Task: {{ tr.task_id }}</h2>
+  {% for t in tr.trials %}
+  <details>
+    <summary>
+      Trial {{ t.trial.index }} —
+      {% if t.passed %}<span class="pass">PASS</span>{% else %}<span class="fail">FAIL</span>{% endif %}
+      · score {{ '%.3f'|format(t.score) }} · {{ '%.0f'|format(t.trial.latency_ms) }} ms
+    </summary>
+
+    {% if t.trial.error %}<p class="reason">Trial error: {{ t.trial.error }}</p>{% endif %}
+
+    <h4>Grader results</h4>
+    <table>
+      <tr><th>Grader</th><th>Score</th><th>Pass</th><th>Weight</th><th>Reason</th></tr>
+      {% for gr in t.grader_results %}
+      <tr>
+        <td>{{ gr.grader_type }}{% if not gr.enabled %} <span class="muted">(disabled)</span>{% endif %}</td>
+        <td>{{ '%.2f'|format(gr.score) }}</td>
+        <td>{% if gr.passed %}<span class="pass">yes</span>{% else %}<span class="fail">no</span>{% endif %}</td>
+        <td>{{ gr.weight }}</td>
+        <td>{{ gr.reason }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    {% set tcalls = t.trial.transcript.tool_calls() %}
+    {% if tcalls %}
+    <h4>Tool-call timeline</h4>
+    <div class="timeline">
+      {% for call in tcalls %}<span class="chip">{{ loop.index }}. {{ call.name }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
+    <h4>Final output</h4>
+    <pre>{{ t.trial.final_output }}</pre>
+
+    <h4>Transcript</h4>
+    {% for step in t.trial.transcript.steps %}
+    <div class="step {{ step.role }}">
+      <div class="role">{{ step.role }}</div>
+      {% if step.content is not none %}<div>{{ step.content if step.content is string else tojson(step.content) }}</div>{% endif %}
+      {% if step.tool_call %}<div class="muted">→ {{ step.tool_call.name }}({{ tojson(step.tool_call.arguments) }})</div>{% endif %}
+      {% if step.tool_result %}<div class="muted">← {{ tojson(step.tool_result.content) }}</div>{% endif %}
+      {% if step.error %}<div class="reason">{{ step.error }}</div>{% endif %}
+    </div>
+    {% endfor %}
+
+    <details><summary>Outcome JSON</summary><pre>{{ tojson(t.trial.outcome.state) }}</pre></details>
+    <details><summary>Raw trial JSON</summary><pre>{{ tojson(t.model_dump(mode="json")) }}</pre></details>
+  </details>
+  {% endfor %}
+  {% endfor %}
+
+  <p class="muted" style="margin-top:32px">Generated by agent-eval-harness.</p>
+</div>
+</body>
+</html>
