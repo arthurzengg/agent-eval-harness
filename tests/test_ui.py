@@ -170,3 +170,51 @@ async def test_app_failures_filter_and_jumps(tmp_path: Path) -> None:
         assert app._current is not None and not app._current.passed
         await pilot.press("e")  # expand toggle re-renders without error
         await pilot.press("q")
+
+
+def test_live_trial_label_states() -> None:
+    assert "pending" in presenter.live_trial_label(0, "pending")
+    assert "running" in presenter.live_trial_label(0, "running")
+    done = presenter.live_trial_label(1, "done", _trial_result(passed=False, index=1))
+    assert "FAIL" in done and "score 0.70" in done
+
+
+def test_live_progress_counts() -> None:
+    text = presenter.live_progress(3, 6, 2, 12.34)
+    assert "3/6 trials" in text
+    assert "[green]2[/green]" in text
+    assert "[red]1[/red]" in text
+    assert "12.3s" in text
+
+
+async def test_live_run_app_completes_suite() -> None:
+    pytest.importorskip("textual")
+    import agent_eval.graders  # noqa: F401 - register graders
+    from agent_eval.harness import RunConfig
+    from agent_eval.suite_loader import load_suite
+    from agent_eval.ui.live import LiveRunApp
+
+    suite = load_suite(Path("examples/suites/refund_support.yaml"))
+    app = LiveRunApp(suite, RunConfig(agent="echo", concurrency=2))
+    async with app.run_test(size=(120, 40)) as pilot:
+        await pilot.pause()
+        await app.workers.wait_for_complete()
+    result = app.return_value
+    assert isinstance(result, SuiteResult)
+    assert result.metrics.total_trials == 6
+    assert app._done == 6
+    assert app._passed == 6
+
+
+async def test_live_run_app_abort_returns_none() -> None:
+    pytest.importorskip("textual")
+    import agent_eval.graders  # noqa: F401 - register graders
+    from agent_eval.harness import RunConfig
+    from agent_eval.suite_loader import load_suite
+    from agent_eval.ui.live import LiveRunApp
+
+    suite = load_suite(Path("examples/suites/refund_support.yaml"))
+    app = LiveRunApp(suite, RunConfig(agent="echo"))
+    async with app.run_test(size=(120, 40)) as pilot:
+        await pilot.press("q")  # abort immediately
+    assert app.return_value is None

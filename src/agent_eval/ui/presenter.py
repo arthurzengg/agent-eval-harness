@@ -165,6 +165,32 @@ def format_trial_detail(trial: TrialResult, *, expand: bool = False) -> str:
     return "\n".join(parts)
 
 
+def live_trial_label(index: int, status: str, result: TrialResult | None = None) -> str:
+    """One-line label for a trial in the live-run tree.
+
+    ``status`` is one of ``pending`` / ``running`` / ``done``; for ``done`` the
+    finished ``result`` supplies the pass/fail verdict and score.
+    """
+    if status == "running":
+        return f"trial {index}  [yellow]▶ running[/yellow]"
+    if status == "done" and result is not None:
+        return trial_label(result)
+    return f"trial {index}  [grey62]· pending[/grey62]"
+
+
+def live_progress(done: int, total: int, passed: int, elapsed_s: float) -> str:
+    """Sidebar progress block shown while a live run is in flight."""
+    failed = done - passed
+    return "\n".join(
+        [
+            f"[b]Progress[/b]   {done}/{total} trials",
+            f"[b]Passed[/b]     [green]{passed}[/green]",
+            f"[b]Failed[/b]     [red]{failed}[/red]" if failed else "[b]Failed[/b]     0",
+            f"[b]Elapsed[/b]    {elapsed_s:.1f}s",
+        ]
+    )
+
+
 def suite_title(result: SuiteResult) -> str:
     """Window/header title for the browser."""
     return f"{result.suite.name} ({result.suite.id} v{result.suite.version})"
