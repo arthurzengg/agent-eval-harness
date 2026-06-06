@@ -49,8 +49,11 @@
     <div class="card"><div class="k">Tasks</div><div class="v">{{ m.total_tasks }}</div></div>
     <div class="card"><div class="k">Trials</div><div class="v">{{ m.total_trials }}</div></div>
     <div class="card"><div class="k">Pass rate</div><div class="v">{{ pct(m.pass_rate) }}</div></div>
-    <div class="card"><div class="k">pass@{{ m.k }}</div><div class="v">{{ pct(m.pass_at_k) }}</div></div>
-    <div class="card"><div class="k">pass^{{ m.k }}</div><div class="v">{{ pct(m.pass_caret_k) }}</div></div>
+    <div class="card"><div class="k">pass@{{ m.k_label() }}</div><div class="v">{{ pct(m.pass_at_k) }}</div></div>
+    <div class="card"><div class="k">pass^{{ m.k_label() }}</div><div class="v">{{ pct(m.pass_caret_k) }}</div></div>
+    {% if not m.consistent_k %}
+    <div class="card"><div class="k">Trials / task</div><div class="v">mixed ({{ m.k_min }}..{{ m.k_max }})</div></div>
+    {% endif %}
     <div class="card"><div class="k">Avg score</div><div class="v">{{ '%.3f'|format(m.avg_score) }}</div></div>
     <div class="card"><div class="k">Avg latency</div><div class="v">{{ '%.0f'|format(m.avg_latency_ms) }} ms</div></div>
     <div class="card"><div class="k">Error rate</div><div class="v">{{ pct(m.error_rate) }}</div></div>

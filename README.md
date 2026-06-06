@@ -29,7 +29,11 @@ the final answer is rarely enough:
   supported but never the only way to pass.
 - **Multiple trials** expose flakiness. The harness aggregates `pass@k` (at
   least one of k trials passed) and `pass^k` (all k trials passed), which tell
-  very different stories about reliability.
+  very different stories about reliability. `pass@k` / `pass^k` are computed
+  **per task** against that task's own trial count, so they stay correct when
+  tasks use different counts; reports then label the metric with the range
+  (`pass@2..4`). Set `defaults.enforce_consistent_trials: true` to reject a
+  suite whose tasks resolve to differing counts.
 
 ## 3. How this maps to Anthropic's eval concepts
 

@@ -28,8 +28,14 @@ class ConsoleReporter:
         table.add_row("Tasks", str(m.total_tasks))
         table.add_row("Trials", str(m.total_trials))
         table.add_row("Pass rate (per trial)", _pct(m.pass_rate))
-        table.add_row(f"pass@{m.k}", _pct(m.pass_at_k))
-        table.add_row(f"pass^{m.k}", _pct(m.pass_caret_k))
+        kl = m.k_label()
+        table.add_row(f"pass@{kl}", _pct(m.pass_at_k))
+        table.add_row(f"pass^{kl}", _pct(m.pass_caret_k))
+        if not m.consistent_k:
+            table.add_row(
+                "Trials per task",
+                f"[yellow]mixed (k={m.k_min}..{m.k_max}); pass@k/pass^k are per-task[/yellow]",
+            )
         table.add_row("Avg score", f"{m.avg_score:.3f}")
         table.add_row("Avg latency (ms)", f"{m.avg_latency_ms:.1f}")
         table.add_row("Error rate", _pct(m.error_rate))

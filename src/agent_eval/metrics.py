@@ -50,10 +50,16 @@ def compute_metrics(
     ]
 
     num_tasks = len(task_results) or 1
+    trial_counts = [tr.num_trials for tr in task_results] or [k]
+    k_min = min(trial_counts)
+    k_max = max(trial_counts)
     return MetricsSummary(
         total_tasks=len(task_results),
         total_trials=total_trials,
-        k=k,
+        k=k_max,
+        k_min=k_min,
+        k_max=k_max,
+        consistent_k=k_min == k_max,
         pass_rate=_mean([1.0 if t.passed else 0.0 for t in all_trials]),
         pass_at_k=sum(pass_at_k(tr) for tr in task_results) / num_tasks,
         pass_caret_k=sum(pass_caret_k(tr) for tr in task_results) / num_tasks,

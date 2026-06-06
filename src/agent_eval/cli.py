@@ -45,10 +45,10 @@ def validate(suite: Path = typer.Argument(..., help="Path to an eval suite YAML 
         console.print(f"[red]Invalid suite:[/red] {exc}")
         raise typer.Exit(code=1) from exc
 
-    grader_errors = validate_suite_graders(loaded)
-    if grader_errors:
-        console.print(f"[red]Invalid grader configuration in {suite}:[/red]")
-        for err in grader_errors:
+    errors = validate_suite_graders(loaded) + loaded.trial_count_errors()
+    if errors:
+        console.print(f"[red]Invalid suite configuration in {suite}:[/red]")
+        for err in errors:
             console.print(f"  - {err}")
         raise typer.Exit(code=1)
 
@@ -87,6 +87,12 @@ def run(
     except SuiteLoadError as exc:
         console.print(f"[red]Invalid suite:[/red] {exc}")
         raise typer.Exit(code=1) from exc
+
+    trial_errors = loaded.trial_count_errors()
+    if trial_errors:
+        for err in trial_errors:
+            console.print(f"[red]{err}[/red]")
+        raise typer.Exit(code=1)
 
     config = RunConfig(
         agent=agent,

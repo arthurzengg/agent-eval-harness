@@ -48,6 +48,10 @@ class TaskResult(BaseModel):
     trials: list[TrialResult] = Field(default_factory=list)
     pass_rate: float = 0.0
     avg_score: float = 0.0
+    # The actual number of trials run for this task (its own k). Recorded
+    # explicitly so pass@k / pass^k stay meaningful when tasks use different
+    # trial counts within one suite.
+    k: int = 0
 
     @property
     def num_trials(self) -> int:
@@ -68,7 +72,13 @@ class MetricsSummary(BaseModel):
     pass_rate: float = 0.0
     pass_at_k: float = 0.0
     pass_caret_k: float = 0.0
+    # ``k`` is the representative (max) trial count. When tasks use different
+    # counts, ``k_min`` != ``k_max`` and ``consistent_k`` is False — report the
+    # range rather than a single misleading k.
     k: int = 1
+    k_min: int = 1
+    k_max: int = 1
+    consistent_k: bool = True
     avg_score: float = 0.0
     avg_latency_ms: float = 0.0
     avg_tool_calls: float = 0.0
@@ -82,6 +92,12 @@ class MetricsSummary(BaseModel):
     total_cost_usd: float = 0.0
     per_task: dict[str, float] = Field(default_factory=dict)
     per_grader: dict[str, float] = Field(default_factory=dict)
+
+    def k_label(self) -> str:
+        """Human-readable k for metric labels: ``3`` or ``2..4`` when mixed."""
+        if self.consistent_k:
+            return str(self.k_max)
+        return f"{self.k_min}..{self.k_max}"
 
 
 class SuiteResult(BaseModel):
