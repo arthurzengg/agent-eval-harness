@@ -118,6 +118,13 @@ left, and the selected trial's grader verdicts and full transcript (tool
 calls, results, errors, timings) on the right. Navigate with the arrow keys,
 switch panes with `tab`, quit with `q`.
 
+The static HTML report (`index.html`) is self-contained (no external assets) and
+interactive: a sticky toolbar filters to **only failing trials**, expands or
+collapses every trial at once, a **per-grader aggregation** table shows
+passed/total and pass rate per grader, transcripts are individually
+collapsible (auto-expanded for failing trials), task IDs have **copy buttons**,
+and per-task / per-trial **token totals** are shown when usage is reported.
+
 Artifacts written under `--output`:
 
 ```
