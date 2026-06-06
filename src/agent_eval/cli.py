@@ -98,5 +98,27 @@ def report(
     console.print(f"[green]Wrote[/green] {path}")
 
 
+@app.command()
+def ui(
+    results: Path = typer.Option(..., "--results", help="Path to a stored results.json."),
+) -> None:
+    """Browse stored results in an interactive terminal UI."""
+    if not results.exists():
+        console.print(f"[red]Results file not found:[/red] {results}")
+        raise typer.Exit(code=1)
+    from agent_eval.ui import run_ui
+
+    try:
+        run_ui(str(results))
+    except ModuleNotFoundError as exc:
+        if exc.name is None or not exc.name.startswith("textual"):
+            raise
+        console.print(
+            "[red]The interactive UI requires the 'ui' extra.[/red] "
+            "Install it with: [cyan]pip install 'agent-eval-harness\\[ui]'[/cyan]"
+        )
+        raise typer.Exit(code=1) from exc
+
+
 if __name__ == "__main__":
     app()
