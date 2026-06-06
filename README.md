@@ -262,6 +262,21 @@ Read `self.options` for grader-specific config; use `self.result(...)` to build
 the `GraderResult` with the configured weight. Set `hard_fail=True` for failures
 that should sink the task regardless of weighted score.
 
+### User simulators and dual-control environments
+
+For conversational tasks, [`agent_eval/simulators.py`](src/agent_eval/simulators.py)
+provides a deterministic, dependency-free toolkit for interactive evals:
+
+- `UserSimulator` / `ScriptedUserSimulator` — a user that responds *dynamically*
+  to the agent's latest message (rule-matched), not from a fixed script.
+- `DualControlState` — shared environment state both the agent and the user
+  write to, with per-key provenance so a grader can tell who changed what.
+- `simulate_dialogue` — drives turns between an agent callable and the user over
+  the shared state and returns a `Transcript`.
+- `score_dialogue` — scores **reasoning**, **communication**, and
+  **coordination** as three independent axes (each the fraction of its signals
+  satisfied), so a weakness in one is not masked by strength in another.
+
 ## 7. How to add a new agent adapter
 
 1. Implement the `AgentAdapter` protocol in `src/agent_eval/adapters/`:
