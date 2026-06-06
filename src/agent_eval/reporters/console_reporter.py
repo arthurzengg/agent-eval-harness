@@ -8,6 +8,7 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
+from agent_eval.reliability import flaky_tasks, suite_reliability_curve
 from agent_eval.schemas import SuiteResult
 
 
@@ -50,8 +51,33 @@ class ConsoleReporter:
             table.add_row("Total cost", f"${m.total_cost_usd:.4f}")
         c.print(table)
 
+        self._reliability(result)
         self._failed_tasks(result)
         self._top_failures(result)
+
+    def _reliability(self, result: SuiteResult) -> None:
+        curve = suite_reliability_curve(result.task_results)
+        # Only worth showing once there is more than one attempt to scale over.
+        if len(curve) < 2:
+            return
+        table = Table(title="Reliability curve")
+        table.add_column("k", justify="right")
+        table.add_column("pass@k", justify="right")
+        table.add_column("pass^k", justify="right")
+        table.add_column("tasks", justify="right")
+        for p in curve:
+            table.add_row(str(p.k), _pct(p.pass_at_k), _pct(p.pass_caret_k), str(p.n_tasks))
+        self._console.print(table)
+
+        flaky = flaky_tasks(result.task_results)
+        if flaky:
+            ftable = Table(title="Flaky tasks (pass inconsistently across trials)")
+            ftable.add_column("Task")
+            ftable.add_column("Passed / Trials")
+            ftable.add_column("Flakiness", justify="right")
+            for f in flaky:
+                ftable.add_row(f.task_id, f"{f.n_passed} / {f.n_trials}", f"{f.flakiness:.2f}")
+            self._console.print(ftable)
 
     def _failed_tasks(self, result: SuiteResult) -> None:
         failed = [tr for tr in result.task_results if not all(t.passed for t in tr.trials)]

@@ -86,6 +86,32 @@
     {% endif %}
   </div>
 
+  {% if reliability|length > 1 %}
+  <h2>Reliability curve</h2>
+  <p class="muted">pass@k = at least one of k trials passes; pass^k = all k pass.
+     At each k only tasks with at least k trials contribute.</p>
+  <table>
+    <tr><th>k</th><th>pass@k</th><th>pass^k</th><th>Tasks</th></tr>
+    {% for p in reliability %}
+    <tr><td>{{ p.k }}</td><td>{{ pct(p.pass_at_k) }}</td>
+        <td>{{ pct(p.pass_caret_k) }}</td><td>{{ p.n_tasks }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
+  {% if flaky %}
+  <h2>Flaky tasks</h2>
+  <p class="muted">Tasks that pass on some trials and fail on others (most split first).</p>
+  <table>
+    <tr><th>Task</th><th>Passed / Trials</th><th>Flakiness</th></tr>
+    {% for f in flaky %}
+    <tr><td><a href="#task-{{ f.task_id }}">{{ f.task_id }}</a></td>
+        <td>{{ f.n_passed }} / {{ f.n_trials }}</td>
+        <td>{{ '%.2f'|format(f.flakiness) }}</td></tr>
+    {% endfor %}
+  </table>
+  {% endif %}
+
   <h2>Per-grader aggregation</h2>
   <table>
     <tr><th>Grader</th><th>Passed / Total</th><th>Pass rate</th><th></th></tr>

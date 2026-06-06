@@ -35,6 +35,13 @@ the final answer is rarely enough:
   (`pass@2..4`). Set `defaults.enforce_consistent_trials: true` to reject a
   suite whose tasks resolve to differing counts.
 
+Beyond a single `pass@k`, the harness reports the full **reliability curve** —
+`pass@1..N` and `pass^1..N` — using the standard unbiased combinatorial
+estimators (`pass@k = 1 - C(n-c,k)/C(n,k)`, `pass^k = C(c,k)/C(n,k)`), and
+flags **flaky tasks** that pass on some trials and fail on others. Both the
+console summary and the HTML report render the curve and the flaky-task list.
+See [`agent_eval/reliability.py`](src/agent_eval/reliability.py).
+
 ## 3. How this maps to Anthropic's eval concepts
 
 | Concept | Where it lives |
