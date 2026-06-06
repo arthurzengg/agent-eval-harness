@@ -62,9 +62,7 @@ class Runner:
             metrics=metrics,
         )
 
-    async def _run_task(
-        self, suite: EvalSuite, task: Task, sem: asyncio.Semaphore
-    ) -> TaskResult:
+    async def _run_task(self, suite: EvalSuite, task: Task, sem: asyncio.Semaphore) -> TaskResult:
         trials = suite.task_trials(task)
         scoring = suite.task_scoring(task)
         timeout = suite.task_timeout(task)
