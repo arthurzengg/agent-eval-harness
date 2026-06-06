@@ -72,8 +72,22 @@ jobs:
       #
       # Keep any credentials in GitHub Secrets; this example needs none.
 
-      - name: Upload report
+      - name: Gate against baseline
+        # Fails the build when pass rate / pass@k / pass^k / avg score regress
+        # beyond --tolerance. Regenerate the baseline with `make baseline`.
+        run: |
+          uv run agent-eval compare \
+            --baseline baselines/refund_support.json \
+            --current reports/refund_support/results.json \
+            --tolerance 0.0
+
+      - name: Upload reports (JSON + HTML)
+        # Runs even if the gate failed, so a regression's artifacts are available.
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: eval-report
-          path: reports/refund_support
+          path: |
+            reports/refund_support/results.json
+            reports/refund_support/summary.json
+            reports/refund_support/index.html

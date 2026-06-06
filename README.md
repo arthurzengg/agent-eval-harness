@@ -266,8 +266,14 @@ A safe example workflow lives at
 [`.github/workflows/eval.yml`](.github/workflows/eval.yml). It installs the
 package with uv and runs the suite with the deterministic `echo` agent (no
 secrets, no network). It also documents the `http`-agent invocation against the
-bundled mock server. Adapt it to run against your own agent and fail the build on
-a `pass^k` regression.
+bundled mock server.
+
+The workflow then **gates the run against a committed baseline**
+([`baselines/refund_support.json`](baselines/refund_support.json)): the `compare`
+step fails the build when pass rate, pass@k, pass^k, or average score regress
+beyond the tolerance, and the JSON + HTML reports are uploaded as artifacts on
+every run (including failures). Regenerate the baseline after an intentional
+change with `make baseline`, and check the gate locally with `make compare`.
 
 ## 9. Limitations and next steps
 
