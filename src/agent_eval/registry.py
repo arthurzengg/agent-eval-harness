@@ -8,7 +8,12 @@ and CLI can resolve them without hard-coded imports.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
+
+if TYPE_CHECKING:
+    from agent_eval.adapters.base import AgentAdapter
+    from agent_eval.graders.base import BaseGrader
+    from agent_eval.reporters.base import Reporter
 
 T = TypeVar("T")
 
@@ -46,6 +51,7 @@ class Registry(Generic[T]):
 
 
 # Singletons. Modules import these and call ``.register(...)`` at import time.
-grader_registry: Registry[object] = Registry("grader")
-adapter_registry: Registry[object] = Registry("adapter")
-reporter_registry: Registry[object] = Registry("reporter")
+# Parameterized so ``create()`` returns the concrete plugin type (no casts needed).
+grader_registry: Registry[BaseGrader] = Registry("grader")
+adapter_registry: Registry[AgentAdapter] = Registry("adapter")
+reporter_registry: Registry[Reporter] = Registry("reporter")

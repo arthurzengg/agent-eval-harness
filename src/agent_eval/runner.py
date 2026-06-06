@@ -11,12 +11,10 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Callable
-from typing import cast
 
 from agent_eval.adapters.base import AgentAdapter
 from agent_eval.environments.base import EvalEnvironment
 from agent_eval.environments.local_tempdir import LocalTempDirEnvironment
-from agent_eval.graders.base import BaseGrader
 from agent_eval.metrics import compute_metrics
 from agent_eval.registry import grader_registry
 from agent_eval.schemas import (
@@ -122,7 +120,7 @@ class Runner:
         the trial fails loudly while the rest of the run continues.
         """
         try:
-            grader = cast(BaseGrader, grader_registry.create(config.type, config))
+            grader = grader_registry.create(config.type, config)
             return await grader.grade(task, trial)
         except Exception as exc:  # noqa: BLE001 - record, never crash the suite
             return GraderResult(
