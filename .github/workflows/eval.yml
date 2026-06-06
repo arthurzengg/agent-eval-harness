@@ -33,8 +33,21 @@ jobs:
       - name: Type-check
         run: uv run mypy
 
-      - name: Test
+      - name: Test (with coverage gate)
+        # pytest is configured (pyproject addopts) to measure coverage and fail
+        # below the threshold, so this step doubles as the coverage gate.
         run: uv run pytest -q
+
+      - name: Upload coverage XML
+        if: always()
+        run: uv run coverage xml -o coverage.xml
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.xml
 
   eval:
     runs-on: ubuntu-latest

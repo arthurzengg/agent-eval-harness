@@ -1,12 +1,17 @@
-.PHONY: install test lint typecheck run-example baseline compare clean
+.PHONY: install test lint typecheck coverage run-example baseline compare clean
 
 # Provision the venv and install the package (with dev extras) using uv.
 install:
 	uv venv --python 3.11
 	uv pip install --python .venv -e ".[dev]"
 
+# Coverage is measured and gated automatically (see pyproject addopts).
 test:
 	uv run pytest -q
+
+# Same gate plus a browsable HTML coverage report under htmlcov/.
+coverage:
+	uv run pytest -q --cov-report=html
 
 lint:
 	uv run ruff check src tests

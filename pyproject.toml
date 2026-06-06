@@ -23,6 +23,7 @@ dev = [
     "textual>=0.80",
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
+    "pytest-cov>=5.0",
     "ruff>=0.6",
     "mypy>=1.10",
     "types-pyyaml>=6.0",
@@ -42,6 +43,26 @@ packages = ["src/agent_eval"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# Coverage is measured on every test run and the threshold is enforced here, so
+# `make test` and CI both fail when coverage drops below the configured minimum.
+addopts = "--cov=agent_eval --cov-report=term-missing --cov-fail-under=85"
+
+[tool.coverage.run]
+source = ["agent_eval"]
+branch = true
+# The optional Textual TUI requires a live terminal and is exercised manually;
+# exclude it from the line-coverage gate rather than weaken the threshold.
+omit = ["*/agent_eval/ui/*"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@(abc\\.)?abstractmethod",
+    "if __name__ == .__main__.:",
+]
 
 [tool.ruff]
 line-length = 100
