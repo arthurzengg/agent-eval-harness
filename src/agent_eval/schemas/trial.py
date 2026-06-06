@@ -84,6 +84,14 @@ class Transcript(BaseModel):
         """Sum of per-step durations that were recorded."""
         return sum(s.duration_ms for s in self.steps if s.duration_ms is not None)
 
+    def input_tokens(self) -> int:
+        """Total input/prompt tokens reported across steps."""
+        return sum(s.token_usage.input_tokens for s in self.steps if s.token_usage)
+
+    def output_tokens(self) -> int:
+        """Total output/completion tokens reported across steps."""
+        return sum(s.token_usage.output_tokens for s in self.steps if s.token_usage)
+
     def total_tokens(self) -> int:
         return sum(s.token_usage.total_tokens for s in self.steps if s.token_usage)
 

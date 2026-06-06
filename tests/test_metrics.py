@@ -1,5 +1,14 @@
 from agent_eval.metrics import compute_metrics, pass_at_k, pass_caret_k
-from agent_eval.schemas import TaskResult, Trial, TrialResult
+from agent_eval.schemas import (
+    Pricing,
+    Role,
+    TaskResult,
+    TokenUsage,
+    Transcript,
+    TranscriptStep,
+    Trial,
+    TrialResult,
+)
 
 
 def _task(task_id: str, passes: list[bool]) -> TaskResult:
@@ -36,3 +45,48 @@ def test_compute_metrics_aggregates() -> None:
     # both tasks have at least one pass -> pass@k == 1.0
     assert m.pass_at_k == 1.0
     assert m.per_task["a"] == 1.0
+
+
+def _trial_with_tokens(input_tokens: int, output_tokens: int) -> TrialResult:
+    transcript = Transcript(
+        steps=[
+            TranscriptStep(
+                role=Role.assistant,
+                token_usage=TokenUsage(input_tokens=input_tokens, output_tokens=output_tokens),
+            )
+        ]
+    )
+    return TrialResult(
+        trial=Trial(task_id="a", index=0, transcript=transcript), passed=True, score=1.0
+    )
+
+
+def test_token_and_cost_metrics() -> None:
+    task = TaskResult(
+        task_id="a",
+        trials=[_trial_with_tokens(1000, 500), _trial_with_tokens(3000, 1500)],
+        pass_rate=1.0,
+        avg_score=1.0,
+    )
+    pricing = Pricing(input_per_1m=10.0, output_per_1m=30.0)  # USD / 1M tokens
+    m = compute_metrics([task], k=2, pricing=pricing)
+
+    assert m.avg_input_tokens == 2000.0
+    assert m.avg_output_tokens == 1000.0
+    assert m.total_tokens == 6000  # (1000+500) + (3000+1500)
+    # trial 1: 1000/1e6*10 + 500/1e6*30 = 0.025; trial 2: 0.075 -> total 0.10
+    assert round(m.total_cost_usd, 6) == 0.10
+    assert round(m.avg_cost_usd, 6) == 0.05
+
+
+def test_cost_is_zero_without_pricing() -> None:
+    task = TaskResult(
+        task_id="a",
+        trials=[_trial_with_tokens(1000, 500)],
+        pass_rate=1.0,
+        avg_score=1.0,
+    )
+    m = compute_metrics([task], k=1)  # no pricing
+    assert m.total_tokens == 1500
+    assert m.total_cost_usd == 0.0
+    assert m.avg_cost_usd == 0.0

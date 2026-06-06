@@ -41,6 +41,26 @@ class Scoring(BaseModel):
     pass_threshold: float = Field(0.8, ge=0.0, le=1.0)
 
 
+class Pricing(BaseModel):
+    """Token pricing used to estimate run cost, in USD per 1M tokens.
+
+    Defaults to zero, so cost is reported as 0 until a suite configures real
+    rates for its target model.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    input_per_1m: float = Field(0.0, ge=0.0)
+    output_per_1m: float = Field(0.0, ge=0.0)
+
+    def cost_usd(self, input_tokens: int, output_tokens: int) -> float:
+        """Estimated USD cost for the given input/output token counts."""
+        return (
+            input_tokens / 1_000_000.0 * self.input_per_1m
+            + output_tokens / 1_000_000.0 * self.output_per_1m
+        )
+
+
 class Defaults(BaseModel):
     """Suite-level defaults applied to tasks that do not override them."""
 
@@ -49,6 +69,7 @@ class Defaults(BaseModel):
     trials: int = Field(1, ge=1)
     timeout_seconds: float = Field(60.0, gt=0.0)
     scoring: Scoring = Field(default_factory=Scoring)
+    pricing: Pricing = Field(default_factory=Pricing)
 
 
 class SuiteMetadata(BaseModel):
