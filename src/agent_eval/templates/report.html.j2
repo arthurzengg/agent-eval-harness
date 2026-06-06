@@ -35,6 +35,18 @@
   .timeline { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
   .chip { background: #ddf4ff; border: 1px solid #b6e3ff; color: #0969da; border-radius: 999px; padding: 2px 10px; font-size: 12px; }
   .reason { color: #cf222e; font-size: 13px; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0 4px;
+             position: sticky; top: 0; background: #f6f8fa; padding: 8px 0; z-index: 5; }
+  .btn { background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 4px 10px;
+         font-size: 13px; cursor: pointer; color: #1b1f24; }
+  .btn:hover { background: #f3f4f6; }
+  .toolbar label { font-size: 13px; color: #1b1f24; display: inline-flex; gap: 5px; align-items: center; }
+  .copy { border: 1px solid #d0d7de; background: #fff; border-radius: 6px; font-size: 11px;
+          padding: 1px 7px; cursor: pointer; color: #57606a; margin-left: 6px; }
+  .copy:hover { background: #f3f4f6; }
+  .hidden { display: none !important; }
+  .trial.pass-trial > summary::before { content: "✓ "; color: #1a7f37; }
+  .trial.fail-trial > summary::before { content: "✗ "; color: #cf222e; }
 </style>
 </head>
 <body>
@@ -42,6 +54,13 @@
   <h1>{{ suite.name }}</h1>
   <div class="muted">{{ suite.id }} · v{{ suite.version }} · scoring: {{ scoring_mode }}</div>
   {% if suite.description %}<p class="muted">{{ suite.description }}</p>{% endif %}
+
+  <div class="toolbar">
+    <label><input type="checkbox" id="failOnly" onchange="applyFilter()" /> Show only failing trials</label>
+    <button class="btn" onclick="setAllTrials(true)">Expand all trials</button>
+    <button class="btn" onclick="setAllTrials(false)">Collapse all trials</button>
+    <span class="muted" id="filterCount"></span>
+  </div>
 
   <h2>Metrics</h2>
   <div class="cards">
@@ -67,35 +86,48 @@
     {% endif %}
   </div>
 
-  <h2>Per-grader pass rate</h2>
+  <h2>Per-grader aggregation</h2>
   <table>
-    <tr><th>Grader</th><th>Pass rate</th></tr>
-    {% for g, rate in metrics.per_grader.items() %}
-    <tr><td>{{ g }}</td><td>{{ pct(rate) }}</td></tr>
+    <tr><th>Grader</th><th>Passed / Total</th><th>Pass rate</th><th></th></tr>
+    {% for g in per_grader_detail %}
+    <tr>
+      <td>{{ g.type }}</td>
+      <td>{{ g.passed }} / {{ g.total }}</td>
+      <td>{{ pct(g.rate) }}</td>
+      <td><div class="bar"><span style="width: {{ (g.rate * 100)|round }}%;
+          {% if g.rate < 1.0 %}background:#bf8700{% endif %}"></span></div></td>
+    </tr>
     {% endfor %}
   </table>
 
   <h2>Tasks</h2>
   <table>
-    <tr><th>Task</th><th>Passed / Trials</th><th>Avg score</th><th></th></tr>
+    <tr><th>Task</th><th>Passed / Trials</th><th>Avg score</th>
+        {% if metrics.total_tokens %}<th>Tokens</th>{% endif %}<th></th></tr>
     {% for tr in task_results %}
     <tr>
-      <td><a href="#task-{{ tr.task_id }}">{{ tr.task_id }}</a></td>
+      <td><a href="#task-{{ tr.task_id }}">{{ tr.task_id }}</a>
+          <button class="copy" data-copy="{{ tr.task_id }}" onclick="copyId(this)">copy id</button></td>
       <td>{{ tr.num_passed }} / {{ tr.num_trials }}</td>
       <td>{{ '%.3f'|format(tr.avg_score) }}</td>
+      {% if metrics.total_tokens %}<td>{{ '{:,}'.format(task_tokens.get(tr.task_id, 0)) }}</td>{% endif %}
       <td><div class="bar"><span style="width: {{ (tr.pass_rate * 100)|round }}%"></span></div></td>
     </tr>
     {% endfor %}
   </table>
 
   {% for tr in task_results %}
-  <h2 id="task-{{ tr.task_id }}">Task: {{ tr.task_id }}</h2>
+  <h2 id="task-{{ tr.task_id }}">Task: {{ tr.task_id }}
+    <button class="copy" data-copy="{{ tr.task_id }}" onclick="copyId(this)">copy id</button>
+  </h2>
   {% for t in tr.trials %}
-  <details>
+  {% set tokens = t.trial.transcript.total_tokens() %}
+  <details class="trial {{ 'pass-trial' if t.passed else 'fail-trial' }}" data-pass="{{ '1' if t.passed else '0' }}">
     <summary>
       Trial {{ t.trial.index }} —
       {% if t.passed %}<span class="pass">PASS</span>{% else %}<span class="fail">FAIL</span>{% endif %}
       · score {{ '%.3f'|format(t.score) }} · {{ '%.0f'|format(t.trial.latency_ms) }} ms
+      {% if tokens %}· {{ '{:,}'.format(tokens) }} tokens{% endif %}
     </summary>
 
     {% if t.trial.error %}<p class="reason">Trial error: {{ t.trial.error }}</p>{% endif %}
@@ -125,16 +157,18 @@
     <h4>Final output</h4>
     <pre>{{ t.trial.final_output }}</pre>
 
-    <h4>Transcript</h4>
-    {% for step in t.trial.transcript.steps %}
-    <div class="step {{ step.role }}">
-      <div class="role">{{ step.role }}</div>
-      {% if step.content is not none %}<div>{{ step.content if step.content is string else tojson(step.content) }}</div>{% endif %}
-      {% if step.tool_call %}<div class="muted">→ {{ step.tool_call.name }}({{ tojson(step.tool_call.arguments) }})</div>{% endif %}
-      {% if step.tool_result %}<div class="muted">← {{ tojson(step.tool_result.content) }}</div>{% endif %}
-      {% if step.error %}<div class="reason">{{ step.error }}</div>{% endif %}
-    </div>
-    {% endfor %}
+    <details class="transcript"{% if not t.passed %} open{% endif %}>
+      <summary>Transcript ({{ t.trial.transcript.steps|length }} steps)</summary>
+      {% for step in t.trial.transcript.steps %}
+      <div class="step {{ step.role }}">
+        <div class="role">{{ step.role }}</div>
+        {% if step.content is not none %}<div>{{ step.content if step.content is string else tojson(step.content) }}</div>{% endif %}
+        {% if step.tool_call %}<div class="muted">→ {{ step.tool_call.name }}({{ tojson(step.tool_call.arguments) }})</div>{% endif %}
+        {% if step.tool_result %}<div class="muted">← {{ tojson(step.tool_result.content) }}</div>{% endif %}
+        {% if step.error %}<div class="reason">{{ step.error }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    </details>
 
     <details><summary>Outcome JSON</summary><pre>{{ tojson(t.trial.outcome.state) }}</pre></details>
     <details><summary>Raw trial JSON</summary><pre>{{ tojson(t.model_dump(mode="json")) }}</pre></details>
@@ -144,5 +178,46 @@
 
   <p class="muted" style="margin-top:32px">Generated by agent-eval-harness.</p>
 </div>
+<script>
+  // Toggle every top-level trial open/closed.
+  function setAllTrials(open) {
+    document.querySelectorAll("details.trial").forEach(function (d) {
+      if (!d.classList.contains("hidden")) d.open = open;
+    });
+  }
+  // Show only failing trials (and hide now-empty task headings).
+  function applyFilter() {
+    var failOnly = document.getElementById("failOnly").checked;
+    var hidden = 0, shown = 0;
+    document.querySelectorAll("details.trial").forEach(function (d) {
+      var hide = failOnly && d.dataset.pass === "1";
+      d.classList.toggle("hidden", hide);
+      hide ? hidden++ : shown++;
+    });
+    document.querySelectorAll("h2[id^='task-']").forEach(function (h) {
+      var any = false, n = h.nextElementSibling;
+      while (n && n.tagName === "DETAILS") {
+        if (!n.classList.contains("hidden")) any = true;
+        n = n.nextElementSibling;
+      }
+      h.classList.toggle("hidden", failOnly && !any);
+    });
+    var label = document.getElementById("filterCount");
+    label.textContent = failOnly ? shown + " failing trial(s) shown, " + hidden + " hidden" : "";
+  }
+  // Copy a task id to the clipboard with brief button feedback.
+  function copyId(btn) {
+    var text = btn.dataset.copy, prev = btn.textContent;
+    var done = function () { btn.textContent = "copied!"; setTimeout(function () { btn.textContent = prev; }, 1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, done);
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta); done();
+    }
+  }
+</script>
 </body>
 </html>
