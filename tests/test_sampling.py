@@ -73,9 +73,6 @@ def test_sample_maximizes_coverage() -> None:
     universe = _universe()
     sample = sample_cases(universe, 3)
     assert len(sample) == 3
-    # The 3 records picked should cover all four intents'... at least all distinct
-    # intents and tools available, since each adds new coverage.
-    report = coverage_report(sample, universe)
     # cancel and status only appear once each, so a coverage-greedy sampler must
     # include r3 and r4 to cover those intents/tools/edge/failure_mode.
     ids = {r.id for r in sample}
