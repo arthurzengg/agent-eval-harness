@@ -1,0 +1,1118 @@
+{
+  "suite": {
+    "id": "refund_support",
+    "name": "Refund Support Agent Eval",
+    "description": "Evaluates a support agent that handles refund requests.",
+    "version": "0.1.0"
+  },
+  "scoring_mode": "weighted",
+  "task_results": [
+    {
+      "task_id": "refund_allowed_under_30_days",
+      "trials": [
+        {
+          "trial": {
+            "task_id": "refund_allowed_under_30_days",
+            "index": 0,
+            "final_output": "Agent should verify identity, fetch policy, process refund, and explain the resolution.",
+            "transcript": {
+              "steps": [
+                {
+                  "role": "user",
+                  "content": "I want a refund for order A100. I bought it 10 days ago.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling verify_identity.",
+                  "tool_call": {
+                    "name": "verify_identity",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "verify_identity",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling fetch_refund_policy.",
+                  "tool_call": {
+                    "name": "fetch_refund_policy",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "fetch_refund_policy",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling process_refund.",
+                  "tool_call": {
+                    "name": "process_refund",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "process_refund",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Agent should verify identity, fetch policy, process refund, and explain the resolution.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                }
+              ]
+            },
+            "outcome": {
+              "state": {
+                "ticket": {
+                  "status": "resolved"
+                },
+                "refund": {
+                  "status": "processed",
+                  "order_id": "A100"
+                }
+              }
+            },
+            "metadata": {
+              "adapter": "echo"
+            },
+            "latency_ms": 0.9425419848412275,
+            "error": null
+          },
+          "grader_results": [
+            {
+              "grader_type": "tool_calls",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.25,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All tool-call checks passed.",
+              "details": {
+                "required_total": 3,
+                "required_satisfied": 3,
+                "missing": [],
+                "forbidden_hits": [],
+                "ordered": false
+              }
+            },
+            {
+              "grader_type": "state_check",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.35,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All state expectations met.",
+              "details": {
+                "satisfied": 3,
+                "total": 3,
+                "failures": []
+              }
+            },
+            {
+              "grader_type": "transcript",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.15,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All transcript checks passed.",
+              "details": {
+                "passed": 2,
+                "total": 2,
+                "failures": []
+              }
+            },
+            {
+              "grader_type": "llm_rubric",
+              "score": 0.0,
+              "passed": true,
+              "weight": 0.25,
+              "hard_fail": false,
+              "enabled": false,
+              "reason": "LLM rubric grader disabled (enabled: false); skipped.",
+              "details": {
+                "skipped": true
+              }
+            }
+          ],
+          "score": 1.0,
+          "passed": true
+        },
+        {
+          "trial": {
+            "task_id": "refund_allowed_under_30_days",
+            "index": 1,
+            "final_output": "Agent should verify identity, fetch policy, process refund, and explain the resolution.",
+            "transcript": {
+              "steps": [
+                {
+                  "role": "user",
+                  "content": "I want a refund for order A100. I bought it 10 days ago.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling verify_identity.",
+                  "tool_call": {
+                    "name": "verify_identity",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "verify_identity",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling fetch_refund_policy.",
+                  "tool_call": {
+                    "name": "fetch_refund_policy",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "fetch_refund_policy",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling process_refund.",
+                  "tool_call": {
+                    "name": "process_refund",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "process_refund",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Agent should verify identity, fetch policy, process refund, and explain the resolution.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                }
+              ]
+            },
+            "outcome": {
+              "state": {
+                "ticket": {
+                  "status": "resolved"
+                },
+                "refund": {
+                  "status": "processed",
+                  "order_id": "A100"
+                }
+              }
+            },
+            "metadata": {
+              "adapter": "echo"
+            },
+            "latency_ms": 0.234166975133121,
+            "error": null
+          },
+          "grader_results": [
+            {
+              "grader_type": "tool_calls",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.25,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All tool-call checks passed.",
+              "details": {
+                "required_total": 3,
+                "required_satisfied": 3,
+                "missing": [],
+                "forbidden_hits": [],
+                "ordered": false
+              }
+            },
+            {
+              "grader_type": "state_check",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.35,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All state expectations met.",
+              "details": {
+                "satisfied": 3,
+                "total": 3,
+                "failures": []
+              }
+            },
+            {
+              "grader_type": "transcript",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.15,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All transcript checks passed.",
+              "details": {
+                "passed": 2,
+                "total": 2,
+                "failures": []
+              }
+            },
+            {
+              "grader_type": "llm_rubric",
+              "score": 0.0,
+              "passed": true,
+              "weight": 0.25,
+              "hard_fail": false,
+              "enabled": false,
+              "reason": "LLM rubric grader disabled (enabled: false); skipped.",
+              "details": {
+                "skipped": true
+              }
+            }
+          ],
+          "score": 1.0,
+          "passed": true
+        },
+        {
+          "trial": {
+            "task_id": "refund_allowed_under_30_days",
+            "index": 2,
+            "final_output": "Agent should verify identity, fetch policy, process refund, and explain the resolution.",
+            "transcript": {
+              "steps": [
+                {
+                  "role": "user",
+                  "content": "I want a refund for order A100. I bought it 10 days ago.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling verify_identity.",
+                  "tool_call": {
+                    "name": "verify_identity",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "verify_identity",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling fetch_refund_policy.",
+                  "tool_call": {
+                    "name": "fetch_refund_policy",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "fetch_refund_policy",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling process_refund.",
+                  "tool_call": {
+                    "name": "process_refund",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "process_refund",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Agent should verify identity, fetch policy, process refund, and explain the resolution.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                }
+              ]
+            },
+            "outcome": {
+              "state": {
+                "ticket": {
+                  "status": "resolved"
+                },
+                "refund": {
+                  "status": "processed",
+                  "order_id": "A100"
+                }
+              }
+            },
+            "metadata": {
+              "adapter": "echo"
+            },
+            "latency_ms": 0.20174996461719275,
+            "error": null
+          },
+          "grader_results": [
+            {
+              "grader_type": "tool_calls",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.25,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All tool-call checks passed.",
+              "details": {
+                "required_total": 3,
+                "required_satisfied": 3,
+                "missing": [],
+                "forbidden_hits": [],
+                "ordered": false
+              }
+            },
+            {
+              "grader_type": "state_check",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.35,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All state expectations met.",
+              "details": {
+                "satisfied": 3,
+                "total": 3,
+                "failures": []
+              }
+            },
+            {
+              "grader_type": "transcript",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.15,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All transcript checks passed.",
+              "details": {
+                "passed": 2,
+                "total": 2,
+                "failures": []
+              }
+            },
+            {
+              "grader_type": "llm_rubric",
+              "score": 0.0,
+              "passed": true,
+              "weight": 0.25,
+              "hard_fail": false,
+              "enabled": false,
+              "reason": "LLM rubric grader disabled (enabled: false); skipped.",
+              "details": {
+                "skipped": true
+              }
+            }
+          ],
+          "score": 1.0,
+          "passed": true
+        }
+      ],
+      "pass_rate": 1.0,
+      "avg_score": 1.0,
+      "k": 3
+    },
+    {
+      "task_id": "refund_denied_over_30_days",
+      "trials": [
+        {
+          "trial": {
+            "task_id": "refund_denied_over_30_days",
+            "index": 0,
+            "final_output": "Agent should verify identity, fetch policy, avoid processing refund, and explain or escalate.",
+            "transcript": {
+              "steps": [
+                {
+                  "role": "user",
+                  "content": "I want a refund for order B200. I bought it 45 days ago.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling verify_identity.",
+                  "tool_call": {
+                    "name": "verify_identity",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "verify_identity",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling fetch_refund_policy.",
+                  "tool_call": {
+                    "name": "fetch_refund_policy",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "fetch_refund_policy",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Agent should verify identity, fetch policy, avoid processing refund, and explain or escalate.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                }
+              ]
+            },
+            "outcome": {
+              "state": {
+                "refund": {
+                  "status": "not_processed"
+                }
+              }
+            },
+            "metadata": {
+              "adapter": "echo"
+            },
+            "latency_ms": 0.17991603817790747,
+            "error": null
+          },
+          "grader_results": [
+            {
+              "grader_type": "tool_calls",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.4,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All tool-call checks passed.",
+              "details": {
+                "required_total": 2,
+                "required_satisfied": 2,
+                "missing": [],
+                "forbidden_hits": [],
+                "ordered": false
+              }
+            },
+            {
+              "grader_type": "state_check",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.4,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All state expectations met.",
+              "details": {
+                "satisfied": 1,
+                "total": 1,
+                "failures": []
+              }
+            },
+            {
+              "grader_type": "transcript",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.2,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All transcript checks passed.",
+              "details": {
+                "passed": 1,
+                "total": 1,
+                "failures": []
+              }
+            }
+          ],
+          "score": 1.0,
+          "passed": true
+        },
+        {
+          "trial": {
+            "task_id": "refund_denied_over_30_days",
+            "index": 1,
+            "final_output": "Agent should verify identity, fetch policy, avoid processing refund, and explain or escalate.",
+            "transcript": {
+              "steps": [
+                {
+                  "role": "user",
+                  "content": "I want a refund for order B200. I bought it 45 days ago.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling verify_identity.",
+                  "tool_call": {
+                    "name": "verify_identity",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "verify_identity",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling fetch_refund_policy.",
+                  "tool_call": {
+                    "name": "fetch_refund_policy",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "fetch_refund_policy",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Agent should verify identity, fetch policy, avoid processing refund, and explain or escalate.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                }
+              ]
+            },
+            "outcome": {
+              "state": {
+                "refund": {
+                  "status": "not_processed"
+                }
+              }
+            },
+            "metadata": {
+              "adapter": "echo"
+            },
+            "latency_ms": 0.17008301801979542,
+            "error": null
+          },
+          "grader_results": [
+            {
+              "grader_type": "tool_calls",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.4,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All tool-call checks passed.",
+              "details": {
+                "required_total": 2,
+                "required_satisfied": 2,
+                "missing": [],
+                "forbidden_hits": [],
+                "ordered": false
+              }
+            },
+            {
+              "grader_type": "state_check",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.4,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All state expectations met.",
+              "details": {
+                "satisfied": 1,
+                "total": 1,
+                "failures": []
+              }
+            },
+            {
+              "grader_type": "transcript",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.2,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All transcript checks passed.",
+              "details": {
+                "passed": 1,
+                "total": 1,
+                "failures": []
+              }
+            }
+          ],
+          "score": 1.0,
+          "passed": true
+        },
+        {
+          "trial": {
+            "task_id": "refund_denied_over_30_days",
+            "index": 2,
+            "final_output": "Agent should verify identity, fetch policy, avoid processing refund, and explain or escalate.",
+            "transcript": {
+              "steps": [
+                {
+                  "role": "user",
+                  "content": "I want a refund for order B200. I bought it 45 days ago.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling verify_identity.",
+                  "tool_call": {
+                    "name": "verify_identity",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "verify_identity",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Calling fetch_refund_policy.",
+                  "tool_call": {
+                    "name": "fetch_refund_policy",
+                    "arguments": {},
+                    "call_id": null
+                  },
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "tool",
+                  "content": null,
+                  "tool_call": null,
+                  "tool_result": {
+                    "name": "fetch_refund_policy",
+                    "call_id": null,
+                    "content": {
+                      "ok": true
+                    },
+                    "error": null
+                  },
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                },
+                {
+                  "role": "assistant",
+                  "content": "Agent should verify identity, fetch policy, avoid processing refund, and explain or escalate.",
+                  "tool_call": null,
+                  "tool_result": null,
+                  "timestamp": null,
+                  "duration_ms": null,
+                  "token_usage": null,
+                  "error": null
+                }
+              ]
+            },
+            "outcome": {
+              "state": {
+                "refund": {
+                  "status": "not_processed"
+                }
+              }
+            },
+            "metadata": {
+              "adapter": "echo"
+            },
+            "latency_ms": 0.15629094559699297,
+            "error": null
+          },
+          "grader_results": [
+            {
+              "grader_type": "tool_calls",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.4,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All tool-call checks passed.",
+              "details": {
+                "required_total": 2,
+                "required_satisfied": 2,
+                "missing": [],
+                "forbidden_hits": [],
+                "ordered": false
+              }
+            },
+            {
+              "grader_type": "state_check",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.4,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All state expectations met.",
+              "details": {
+                "satisfied": 1,
+                "total": 1,
+                "failures": []
+              }
+            },
+            {
+              "grader_type": "transcript",
+              "score": 1.0,
+              "passed": true,
+              "weight": 0.2,
+              "hard_fail": false,
+              "enabled": true,
+              "reason": "All transcript checks passed.",
+              "details": {
+                "passed": 1,
+                "total": 1,
+                "failures": []
+              }
+            }
+          ],
+          "score": 1.0,
+          "passed": true
+        }
+      ],
+      "pass_rate": 1.0,
+      "avg_score": 1.0,
+      "k": 3
+    }
+  ],
+  "metrics": {
+    "total_tasks": 2,
+    "total_trials": 6,
+    "pass_rate": 1.0,
+    "pass_at_k": 1.0,
+    "pass_caret_k": 1.0,
+    "k": 3,
+    "k_min": 3,
+    "k_max": 3,
+    "consistent_k": true,
+    "avg_score": 1.0,
+    "avg_latency_ms": 0.31412482106437284,
+    "avg_tool_calls": 2.5,
+    "avg_turns": 4.5,
+    "error_rate": 0.0,
+    "avg_input_tokens": 0.0,
+    "avg_output_tokens": 0.0,
+    "avg_total_tokens": 0.0,
+    "total_tokens": 0,
+    "avg_cost_usd": 0.0,
+    "total_cost_usd": 0.0,
+    "per_task": {
+      "refund_allowed_under_30_days": 1.0,
+      "refund_denied_over_30_days": 1.0
+    },
+    "per_grader": {
+      "tool_calls": 1.0,
+      "state_check": 1.0,
+      "transcript": 1.0,
+      "llm_rubric": 1.0
+    }
+  }
+}
